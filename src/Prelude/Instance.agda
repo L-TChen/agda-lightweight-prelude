@@ -10,9 +10,12 @@ open import Agda.Builtin.Nat
 open import Agda.Builtin.Equality
 
 open import Relation.Nullary
-open import Relation.Binary using (Decidable)
-open import Data.List as List using (List)
-open import Data.Bool as Bool using (Bool)
+open import Relation.Binary
+  using (Decidable)
+open import Data.List as List
+  hiding (_++_; length; replicate; [_]; map; foldr)
+open import Data.Bool as Bool
+  using (Bool; if_then_else_)
 
 record Enum (A : Set ℓ) : Set (suc ℓ) where
   field
@@ -58,13 +61,17 @@ record ListLike (LL : Set ℓ) : Set (suc ℓ) where
 open ListLike ⦃...⦄ public
 
 -- Categorical 
-record Functor (T : Set ℓ → Set ℓ) : Set (suc ℓ) where
+record Functor (T : Set ℓ → Set ℓ′) : Set (suc (ℓ-max ℓ ℓ′)) where
   infixl 6 _<$>_
   field
     _<$>_ : (A → B) → T A → T B
 
   map = _<$>_
 open Functor ⦃...⦄ public
+
+instance
+  LiftFunc : Functor {ℓ} (Lift ℓ)
+  LiftFunc = record { _<$>_ = λ { f (lift a) → lift $ f a} }
 
 record Bifunctor (T : Set ℓ → Set ℓ′ → Set (ℓ-max ℓ ℓ′))
   : Set (suc $ ℓ-max ℓ ℓ′) where
@@ -89,7 +96,15 @@ record Applicative (F : Set ℓ → Set ℓ) : Set (suc ℓ) where
   field
     pure    : A → F A
     _<*>_   : F (A → B) → F A → F B
-    instance overlap {{functor}} : Functor F
+    instance overlap ⦃ functor ⦄ : Functor F
+  
+  filterA : (A → F $ Lift ℓ Bool) → List A → F (List A)
+  filterA p []               = pure []
+  filterA {A = A} p (x ∷ xs) = ⦇ go (p x) (filterA p xs) ⦈
+    where
+      go : Lift ℓ Bool → List A → List A
+      go = (if_then (x ∷_) else id) ∘ lower
+      
 open Applicative ⦃...⦄ public
 
 record Monad (M : Set ℓ → Set ℓ) : Set (suc ℓ) where
@@ -134,20 +149,20 @@ record Alternative (F : Set ℓ → Set ℓ) : Set (suc ℓ) where
   field
     empty : F A
     _<|>_ : F A → F A → F A
-    overlap {{super}} : Applicative F
+    ⦃ super ⦄ : Applicative F
 open Alternative ⦃...⦄ public
 
 record MonadPlus (M : Set ℓ → Set ℓ) : Set (suc ℓ) where
   field
-    overlap {{alter}} : Alternative M
-    overlap {{monad}} : Monad M
+    ⦃ alternative ⦄ : Alternative M
+    ⦃ monad ⦄ : Monad M
 open MonadPlus ⦃...⦄ public
 
 record MonadError (E : Set ℓ) (M : Set ℓ → Set ℓ) : Set (suc ℓ) where
   field
     throwError : E → M A
     catchError : M A → (E → M A) → M A
-    overlap ⦃ monad ⦄ : Monad M
+    ⦃ monad ⦄ : Monad M
 open MonadError ⦃...⦄ public
 
 record Foldable (T : Set ℓ → Set ℓ) : Set (suc ℓ) where
@@ -161,12 +176,15 @@ open Foldable ⦃...⦄ public
 record Traversable (T : Set ℓ → Set ℓ) : Set (suc ℓ) where
   field
     traverse : ∀ {F} ⦃ _ : Applicative F ⦄ → (A → F B) → T A → F (T B)
-    overlap {{super}} : Functor T
-    overlap {{suppr}} : Foldable T
+    ⦃ functor ⦄  : Functor T
+    ⦃ foldable ⦄ : Foldable T
 
-  sequence : ∀ {F} ⦃ _ : Applicative F ⦄ → T $ F A → F $ T A
+  private
+    variable F : Set ℓ → Set ℓ
+
+  sequence : ⦃ _ : Applicative F ⦄ → T $ F A → F $ T A
   sequence = traverse id
 
-  for : ∀ {F} ⦃ _ : Applicative F ⦄ → T A → (A → F B) → F $ T B
+  for : ∀ ⦃ _ : Applicative F ⦄ → T A → (A → F B) → F $ T B
   for = flip traverse
 open Traversable ⦃...⦄ public

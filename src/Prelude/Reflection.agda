@@ -5,12 +5,18 @@ open import Prelude.Instance
 
 open import Agda.Builtin.List
 open import Agda.Builtin.Unit using (⊤)
-open import Reflection public
-  hiding (return; _>>_; _>>=_; _≟_; bindTC) 
+open import Reflection as Reflection public
+  hiding (return; _>>_; _>>=_; _≟_) 
+
+infixl 1 _>>=TC_
+
+_>>=TC_ = bindTC
 
 instance
   TCM : Monad {ℓ} TC
-  TCM = record { return = Reflection.return ; _>>=_ = Reflection.bindTC }
+  TCM = record
+    { return = Reflection.return
+    ; _>>=_  = Reflection.bindTC }
 
   TCAlter : Alternative {ℓ} TC
   TCAlter = record

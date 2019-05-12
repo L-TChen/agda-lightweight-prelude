@@ -3,7 +3,7 @@ module Prelude.String where
 open import Prelude.Base
 open import Prelude.Instance
 
-open import Data.Char as Char     public
+open import Data.Char   as Char     public
   using (Char)
 open import Data.String as String public
   hiding (_≟_; _++_; _<_; length; fromList; toList; _==_; concat; replicate)
