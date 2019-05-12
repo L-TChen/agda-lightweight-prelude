@@ -60,7 +60,8 @@ record ListLike (LL : Set ℓ) : Set (suc ℓ) where
   [_]         = singleton
 open ListLike ⦃...⦄ public
 
--- Categorical 
+-- Categorical
+-- TODO: Indexed functor/monad ...etc
 record Functor (T : Set ℓ → Set ℓ′) : Set (suc (ℓ-max ℓ ℓ′)) where
   infixl 6 _<$>_
   field

@@ -7,6 +7,7 @@ open import Prelude.Unit       public
 open import Prelude.Bool       public
 open import Prelude.List       public
 open import Prelude.DiffList   public
+--open import Prelude.Vec        public -- generalise Instances to the indexed version
 open import Prelude.Maybe      public
 open import Prelude.Nat        public
 open import Prelude.String     public
