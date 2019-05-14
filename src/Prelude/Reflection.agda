@@ -3,8 +3,7 @@ module Prelude.Reflection where
 open import Prelude.Base
 open import Prelude.Instance
 
-open import Agda.Builtin.List
-open import Agda.Builtin.Unit using (⊤)
+open import Data.Sum using (_⊎_; inj₁; inj₂)
 open import Reflection as Reflection public
   hiding (return; _>>_; _>>=_; _≟_) 
 
@@ -23,7 +22,26 @@ instance
     { empty = typeError List.[]
     ; _<|>_ = catchTC
     }
-
+  
+  TCEMonad : {E : Set} → Monad {ℓ} $ TC ∘ (E ⊎_)
+  TCEMonad = record
+    { return = λ a → inj₂ <$> return a
+    ; _>>=_  = λ ma f → do
+      (inj₂ a) ← ma 
+        where (inj₁ e) → return $ inj₁ e
+      f a }
+  
+  TCEError : {E : Set} → MonadError {ℓ₁ = ℓ} E $ TC ∘ (E ⊎_)
+  TCEError = record
+    { throw      = return ∘ inj₁
+    ; try_catch_ = λ ma handler → do
+      inj₁ e ← ma
+        where inj₂ a → return a
+      handler e } 
+  
+  NameIsDecEq : DecEq Name
+  NameIsDecEq = record { _≟_ = _≟-Name_ }
+  
   TermIsDecEq : DecEq Term
   TermIsDecEq = record { _≟_ = Reflection._≟_ }
 

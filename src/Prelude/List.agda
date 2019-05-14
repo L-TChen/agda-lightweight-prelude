@@ -6,7 +6,7 @@ open import Prelude.Base
 open import Prelude.Instance
 
 open import Data.List as L public
-  hiding (foldr; map; [_]; _++_; length; replicate)
+  hiding (foldr; map; [_]; _++_; length; replicate; zip; zipWith)
 import Data.List.Properties as Lₚ
 
 instance

@@ -17,4 +17,9 @@ instance
   E+Monad = record { return = inj₂ ; _>>=_ = λ { (inj₁ e) f → inj₁ e ; (inj₂ a) f → f a } }
   
   MonadExcept : ∀ {E : Set ℓ} → MonadError E (E ⊎_)
-  MonadExcept = record { throwError = inj₁ ; catchError = λ { (inj₁ e) f → f e ; (inj₂ a) _ → inj₂ a } }
+  MonadExcept = record
+    { throw      = inj₁
+    ; try_catch_ = λ
+      { (inj₁ e) f → f e
+      ; (inj₂ a) _ → inj₂ a }
+    }

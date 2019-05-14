@@ -6,7 +6,7 @@ open import Prelude.Instance
 open import Data.Char   as Char     public
   using (Char)
 open import Data.String as String public
-  hiding (_≟_; _++_; _<_; length; fromList; toList; _==_; concat; replicate)
+  hiding (_≟_; _++_; _<_; _<?_; length; fromList; toList; _==_; concat; replicate)
 open import Agda.Builtin.List as L
 
 instance
