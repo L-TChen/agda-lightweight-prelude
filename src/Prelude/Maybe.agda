@@ -18,7 +18,7 @@ instance
     ; _>>=_  = Maybe._>>=_ }
 
   MaybeAlternative : Alternative {ℓ} Maybe
-  MaybeAlternative = record { empty = nothing ; _<|>_ = Maybe._<∣>_ }
+  MaybeAlternative = record { azero = nothing ; _<|>_ = Maybe._<∣>_ }
 
   MaybeFoldable : Foldable {ℓ} Maybe
   MaybeFoldable = record { foldr = λ { f z nothing → z ; f z (just a) → f a z } }

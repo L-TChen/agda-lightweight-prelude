@@ -15,20 +15,21 @@ instance
     { return = L.[_]
     ; _>>=_ = λ xs f → concat $ L.map f xs 
     }
-  ListListLike : ∀ {A : Set ℓ} → ListLike {ℓ} (L.List A)
+  ListListLike : ∀ {A : Set ℓ} → ListLike {ℓ} (λ _ → L.List A)
   ListListLike {A = A} = record
     { base = A
     ; empty = L.[]
     ; singleton = L.[_]
     ; _++_ = L._++_
     ; length = L.length
-    ; toList   = id
-    ; fromList = id }
+    ; toList   = snd
+    ; fromList = λ xs → L.length xs , xs
+    }
 
   ListAlternative : Alternative {ℓ} L.List
   ListAlternative = record
-    { empty = []
-    ; _<|>_ = _++_
+    { azero = []
+    ; _<|>_ = L._++_
     }
 
   ListFoldable : Foldable {ℓ} L.List
@@ -36,10 +37,10 @@ instance
 
   ListTraversable : Traversable {ℓ} L.List
   ListTraversable = record
-    { traverse = λ f → foldr (λ x ys → _∷_ <$> f x <*> ys) (pure []) }
+    { traverse = λ f → L.foldr (λ x ys → ⦇ _∷_ (f x) ys ⦈) (pure []) }
 
-  ++-Monoid : {A : Set ℓ} → Monoid (L.List A)
-  ++-Monoid = record { ε = [] ; _∙_ = _++_ }
+  ListShow : ⦃ _ : Show A ⦄ → Show (List A)
+  ListShow = record { show = L.foldr (λ x xs → show x +++ " ∷ " +++ xs) " []" }
 
   ListDecEq : ⦃ _ : DecEq A ⦄ → DecEq (L.List A)
   ListDecEq ⦃ record { _≟_ = _≟_ } ⦄ = record { _≟_ = Lₚ.≡-dec _≟_ }

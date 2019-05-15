@@ -27,9 +27,15 @@ record Ord (A : Set ℓ) : Set (lsuc ℓ) where
   infix 6 _<=_
   field
     _<=_ : A → A → Bool
+open Ord ⦃...⦄ public
+
+record Show (A : Set ℓ) : Set (lsuc ℓ) where
+  field
+    show : A → String
+open Show ⦃...⦄ public
 
 record POrd (A : Set ℓ) : Set (lsuc ℓ) where
--- Partial order
+-- Propositional Partial order
   infix 6 _≤_
   infix 6 _<_
   field
@@ -45,16 +51,15 @@ record DecEq (A : Set ℓ) : Set (lsuc ℓ) where
     DecEq⇒Eq = record { _==_ = λ x y → ⌊ x ≟ y ⌋ }
 open DecEq ⦃...⦄ public
 
-record ListLike (LL : Set ℓ) : Set (lsuc ℓ) where
+record ListLike (LL : ℕ → Set ℓ) : Set (lsuc ℓ) where
   field
     base      : Set ℓ
-    singleton : base → LL
-    empty     : LL
-    _++_      : LL → LL → LL
-    length    : LL → ℕ
-    fromList  : List base → LL
-    toList    : LL → List base
---    ⦃ isMonoid ⦄ : IsMonoid _++_ []  
+    singleton : base → LL 1
+    empty     : LL 0
+    _++_      : LL n → LL m → LL (n + m)
+    length    : LL n → ℕ
+    fromList  : List base → Σ ℕ LL
+    toList    : Σ ℕ LL → List base
   [_]         = singleton
 open ListLike ⦃...⦄ public
 
@@ -117,6 +122,7 @@ record IApplicative {I : Set ℓ} (F : IFun I ℓ₁ ℓ₂ ) : Set (ℓ ⊔ lsu
 
   zip : F i j A → F j k B → F i k (Σ A λ _ → B)
   zip = zipWith _,_
+  
 open IApplicative ⦃...⦄ public
 
 Applicative : (Set ℓ₁ → Set ℓ₂) → Set (lsuc (ℓ₁ ⊔ ℓ₂))
@@ -156,25 +162,31 @@ open IMonad ⦃...⦄ public
 Monad : (M : Set ℓ₁ → Set ℓ₂) → Set (lsuc $ ℓ₁ ⊔ ℓ₂)
 Monad M = IMonad {I = ⊤} λ _ _ → M
 
-record IAlternative {I : Set ℓ} (F : IFun I ℓ₁ ℓ₂) : Set (ℓ ⊔ lsuc (ℓ₁ ⊔ ℓ₂)) where
+record IAlternative (M : Set ℓ′) {I : Set ℓ} (F : M → IFun I ℓ₁ ℓ₂)
+  : Set (ℓ ⊔ lsuc (ℓ′ ⊔ ℓ₁ ⊔ ℓ₂)) where
   infixr 3 _<|>_
   field
-    ⦃ applicative ⦄ : IApplicative F
-    empty : F i j A
-    _<|>_ : F i j A → F i j A → F i j A
+    ⦃ monoid ⦄ : Monoid M
+    ⦃ applicative ⦄ : ∀ {m} → IApplicative $ F m
+    azero : F ε i j A
+    _<|>_ : ∀ {x y} → F x i j A → F y i j A → F (x ∙ y) i j A
 open IAlternative ⦃...⦄ public
 
-Alternative : (Set ℓ₁ → Set ℓ₂) → Set (lsuc $ ℓ₁ ⊔ ℓ₂)
-Alternative F = IAlternative {I = ⊤} λ _ _ → F
+MAlternative : (M : Set ℓ′) → (M → Set ℓ₁ → Set ℓ₂) → Set (lsuc $ ℓ′ ⊔ ℓ₁ ⊔ ℓ₂)
+MAlternative M F = IAlternative M {I = ⊤} λ m _ _ → (F m)
 
-record IMonadPlus {I : Set ℓ} (M : IFun I ℓ₁ ℓ₂) : Set (ℓ ⊔ lsuc (ℓ₁ ⊔ ℓ₂)) where
+Alternative : (Set ℓ₁ → Set ℓ₂) → Set (lsuc $ ℓ₁ ⊔ ℓ₂)
+Alternative F = IAlternative ⊤ {I = ⊤} λ _ _ _ → F
+
+record IMonadPlus (N : Set ℓ′) {I : Set ℓ} (M : N → IFun I ℓ₁ ℓ₂)
+  : Set (ℓ ⊔ lsuc (ℓ′ ⊔ ℓ₁ ⊔ ℓ₂)) where
   field
-    ⦃ alternative ⦄ : IAlternative M
-    ⦃ monad       ⦄ : IMonad M
+    ⦃ alternative ⦄ : IAlternative N M
+    ⦃ monad       ⦄ : ∀ {n} → IMonad (M n)
 open IMonadPlus ⦃...⦄ public
 
 MonadPlus : (Set ℓ₁ → Set ℓ₂) → Set (lsuc $ ℓ₁ ⊔ ℓ₂)
-MonadPlus M = IMonadPlus {I = ⊤} λ _ _ → M
+MonadPlus M = IMonadPlus ⊤ {I = ⊤} λ _ _ _ → M
 
 record IMonadError (E : Set ℓ′) {I : Set ℓ} (M : IFun I ℓ₁ ℓ₂)
   : Set (ℓ′ ⊔ ℓ ⊔ lsuc (ℓ₁ ⊔ ℓ₂))  where
@@ -196,13 +208,15 @@ open IMonadError ⦃...⦄ public
 MonadError : (E : Set ℓ′) → (M : Set ℓ₁ → Set ℓ₂) → Set (ℓ′ ⊔ lsuc (ℓ₁ ⊔ ℓ₂))
 MonadError E M = IMonadError E {I = ⊤} λ _ _ → M
 
--- TODO: indexed foldable? 
 record Foldable (T : Set ℓ → Set ℓ′) : Set (lsuc ℓ ⊔ ℓ′) where
   field
     foldr : {A B : Set ℓ} → (A → B → B) → B → T A → B 
 
   foldMap : ∀ {M : Set ℓ} ⦃ _ : Monoid M ⦄ {A} → (A → M) → T A → M
-  foldMap ⦃ m ⦄ f = foldr (_∙_ m ∘ f) ε -- foldr (_∙_ ∘ f) ε
+  foldMap ⦃ m ⦄ f = foldr (_∙_ ∘ f) ε
+
+  asum : ∀ {F} ⦃ _ : Alternative F ⦄ → T (F A) -> F A
+  asum = foldr _<|>_ azero
 open Foldable ⦃...⦄ public
 
 record Traversable (T : Set ℓ → Set ℓ) : Set (lsuc $ ℓ) where

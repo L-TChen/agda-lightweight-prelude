@@ -12,3 +12,7 @@ instance
 
   ×-SymBifunc : SymBifunctor {ℓ} _×_
   swap {{×-SymBifunc}}   = Product.swap
+
+  ×-Show : {P : A → Set ℓ} ⦃ _ : Show A ⦄ ⦃ _ : Show B ⦄ → Show (A × B)
+  ×-Show = record
+    { show = λ { (a , b) → "( " +++ show a +++ " , " +++ show b +++ " )"} }

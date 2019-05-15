@@ -19,7 +19,7 @@ instance
 
   TCAlter : Alternative {ℓ} TC
   TCAlter = record
-    { empty = typeError List.[]
+    { azero = typeError []
     ; _<|>_ = catchTC
     }
   
@@ -47,3 +47,19 @@ instance
 
   LitIsDecEq : DecEq Literal
   LitIsDecEq = record { _≟_ = _≟-Lit_ }
+
+  VisibilityShow : Show Visibility
+  VisibilityShow = record
+    { show = λ
+      { visible → "Explicit"
+      ; hidden  → "Implicit"
+      ; instance′ → "Instance" } }
+
+  RelevanceShow : Show Relevance
+  RelevanceShow = record
+    { show = λ
+      { relevant   → "relevant"
+      ; irrelevant → "irrelevant" } }
+      
+  ArgInfoShow : Show Arg-info
+  ArgInfoShow = record { show = λ { (arg-info v r) → show v +++ " " +++ show r +++ " arg" } }
