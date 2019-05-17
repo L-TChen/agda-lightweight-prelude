@@ -17,6 +17,3 @@ open import Prelude.Nat        public
 open import Prelude.Reflection public
 open import Prelude.IO         public
 
---open import Prelude.Relation as Rel public
-
-

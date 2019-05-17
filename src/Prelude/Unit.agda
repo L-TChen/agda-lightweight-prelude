@@ -4,7 +4,7 @@ open import Prelude.Base
 
 import Data.Unit as U 
 open module Unit = U public
-  hiding (⊤; _≟_; _≤_; _≤?_; decSetoid; preorder; setoid)
+  hiding (tt; ⊤; _≟_; _≤_; _≤?_; decSetoid; preorder; setoid)
 
 instance
   ⊤-Eq : Eq ⊤

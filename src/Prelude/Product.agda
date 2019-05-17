@@ -4,7 +4,7 @@ open import Prelude.Base
 
 import Data.Product as P
 open module Product = P public
-  hiding (swap; Σ; map₁; map₂; map; zip)
+  hiding (_,_; swap; Σ; map₁; map₂; map; zip)
 
 instance
   ×-Bifunc : Bifunctor _×_

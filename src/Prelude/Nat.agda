@@ -5,7 +5,7 @@ open import Prelude.Base
 
 import Data.Nat as Nat
 open module ℕ = Nat public
-  hiding   (ℕ; _≤_; _<_; _+_; _<?_; _≤?_; _≥?_; _≟_; _>_; _≥_)
+  hiding   (ℕ; suc; zero; _≤_; _<_; _+_; _<?_; _≤?_; _≥?_; _≟_; _>_; _≥_)
   renaming (_⊔_ to max; _⊓_ to min)
 open import Data.Nat.Properties as Natₚ
 

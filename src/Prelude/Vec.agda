@@ -3,8 +3,9 @@ module Prelude.Vec where
 open import Prelude.Base
 
 import Data.Vec as V
-open module Vec = V
-  hiding (module Vec; foldr; fromList; toList; _++_; _>>=_)
+open module Vec = V public
+  hiding (module Vec)
+  using (Vec; []; _∷_) -- (module Vec; foldr; fromList; toList; _++_; _>>=_)
 
 diag : Vec (Vec A n) n -> Vec A n
 diag []               = []
