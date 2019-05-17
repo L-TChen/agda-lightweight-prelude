@@ -270,8 +270,8 @@ Applicative : Fun → Setω
 Applicative F = IApplicative {I = ⊤} λ _ _ → F
 
 record IMonad (M : IFun I) : Setω where
-  infixl 2 _>>=_ _>>_ _>=>_
-  infixr 2 _=<<_ _<=<_
+  infixl 1 _>>=_ _>>_ _>=>_
+  infixr 1 _=<<_ _<=<_
   field
     return : A → M i i A
     _>>=_  : M i j A → (A → M j k B) → M i k B
@@ -318,6 +318,7 @@ record IMAlternative (F : C → IFun I) : Setω where
     ⦃ monoid ⦄      : Monoid C _∙_
     azero : F ε i j A
     _<|>_ : ∀ {x y} → F x i j A → F y i j A → F (x ∙ y) i j A
+    
   guard : Bool → F ε i i ⊤
   guard true  = pure tt
   guard false = azero

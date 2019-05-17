@@ -5,7 +5,8 @@ module Prelude.Product where
 
 open import Prelude.Base
 
-import Data.Product as P
+open import Data.Product as P public
+  using (_×_)
 
 instance
   ×-Bifunc : Bifunctor P._×_
