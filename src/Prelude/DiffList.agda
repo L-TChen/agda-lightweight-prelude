@@ -1,10 +1,11 @@
+{-# OPTIONS --safe --without-K  #-}
+
 module Prelude.DiffList where
 
 open import Prelude.Base
 
 open import Data.DifferenceList as D
   using (DiffList)
-module DList = D 
 
 instance
   DiffListMonad : Monad DiffList
@@ -17,8 +18,8 @@ instance
   
   DListAlternative : Alternative DiffList
   DListAlternative = record
-    { azero = DList.[]
-    ; _<|>_ = DList._++_ }
+    { azero = D.[]
+    ; _<|>_ = D._++_ }
 
   DListSequence : {A : Set ℓ} → Sequence (DiffList A)
   DListSequence {A = A} = record

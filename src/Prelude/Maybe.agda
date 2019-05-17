@@ -1,13 +1,10 @@
-{-# OPTIONS --overlapping-instances #-}
+{-# OPTIONS --overlapping-instances --safe --without-K #-}
 
 module Prelude.Maybe where
 
 open import Prelude.Base
-  hiding (module Maybe)
 
 import Data.Maybe as M
-open module Maybe = M           public
-  hiding (Maybe; just; nothing; map; _>>=_; align; alignWith; ap; fromMaybe; zip; zipWith)
 import Data.Maybe.Properties as Mₚ
 
 instance

@@ -1,15 +1,15 @@
+{-# OPTIONS --safe --without-K  #-}
+
 module Prelude.Vec where
 
 open import Prelude.Base
 
-import Data.Vec as V
-open module Vec = V public
-  hiding (module Vec)
-  using (Vec; []; _∷_) -- (module Vec; foldr; fromList; toList; _++_; _>>=_)
+open import Data.Vec as V
+  using (Vec; []; _∷_)
 
 diag : Vec (Vec A n) n -> Vec A n
 diag []               = []
-diag ((x ∷ xs) ∷ xss) = x ∷ diag (Vec.map Vec.tail xss)
+diag ((x ∷ xs) ∷ xss) = x ∷ diag (V.map V.tail xss)
 
 instance
   VecMonad : Monad (λ A → Vec A n)
@@ -34,7 +34,7 @@ instance
     ℕ-+-monoid = record { ε = 0 }
     
   VecAlternative : MAlternative λ n A → Vec A n
-  VecAlternative = record { azero = [] ; _<|>_ = Vec._++_ }
+  VecAlternative = record { azero = [] ; _<|>_ = V._++_ }
   
   VecSequence : ISequence (Vec A)
   VecSequence {A = A} = record

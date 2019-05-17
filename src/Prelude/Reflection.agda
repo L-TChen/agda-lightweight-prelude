@@ -3,8 +3,8 @@ module Prelude.Reflection where
 open import Prelude.Base
 
 import Reflection
-open module TC = Reflection
-  hiding (returnTC; return; _>>_; _>>=_; _≟_) public
+open module TC = Reflection public
+  hiding (returnTC; return; _>>_; _>>=_; _≟_)
 
 instance
   TCM : Monad TC
@@ -13,7 +13,7 @@ instance
     ; _>>=_  = TC.bindTC }
 
   TCA : Applicative TC
-  TCA = monad⇒applicative
+  TCA = monad⇒applicative ⦃ TCM ⦄ 
 
   TCAlter : Alternative TC
   TCAlter = record

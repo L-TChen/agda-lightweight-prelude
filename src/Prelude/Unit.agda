@@ -1,10 +1,12 @@
+{-# OPTIONS --safe --without-K  #-}
+
 module Prelude.Unit where
 
 open import Prelude.Base
 
 import Data.Unit as U 
-open module Unit = U public
-  hiding (tt; ⊤; _≟_; _≤_; _≤?_; decSetoid; preorder; setoid)
+--open module Unit = U public
+--  hiding (module ⊤; tt; ⊤; _≟_; _≤_; _≤?_; decSetoid; preorder; setoid)
 
 instance
   ⊤-Eq : Eq ⊤
@@ -14,4 +16,4 @@ instance
   ⊤-Ord = record { _<=_ = λ _ _ → true }
 
   ⊤-DecEq : DecEq ⊤
-  ⊤-DecEq = record { _≟_ = Unit._≟_ }
+  ⊤-DecEq = record { _≟_ = U._≟_ }

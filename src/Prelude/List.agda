@@ -1,18 +1,19 @@
+{-# OPTIONS --safe --without-K  #-}
+
 module Prelude.List where
 
 open import Prelude.Base
-  hiding (module List)
 
 import Data.List as L
-open module List = L       public
-  hiding (List; []; _∷_; foldr; map; [_]; _++_; length; replicate; zip; zipWith)
+-- module List = L       
+--  hiding (List; []; _∷_; foldr; map; [_]; _++_; length; replicate; zip; zipWith)
 import Data.List.Properties as Lₚ
 
 instance
   ListMonad : Monad L.List
   ListMonad = record
     { return = L.[_]
-    ; _>>=_ = λ xs f → concat $ L.map f xs 
+    ; _>>=_ = λ xs f → L.concat $ L.map f xs 
     }
 
   ListApplicative : Applicative List

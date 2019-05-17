@@ -1,3 +1,5 @@
+{-# OPTIONS --safe --without-K  #-}
+
 module Prelude.Base where
 
 open import Agda.Primitive             public

@@ -1,3 +1,5 @@
+{-# OPTIONS --without-K #-}
+
 module Prelude.IO where
 
 open import Prelude.Base
