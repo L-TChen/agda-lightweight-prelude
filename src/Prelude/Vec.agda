@@ -4,7 +4,7 @@ module Prelude.Vec where
 
 open import Prelude.Base
 
-open import Data.Vec as V
+open import Data.Vec as V public
   using (Vec; []; _∷_)
 
 diag : Vec (Vec A n) n -> Vec A n
