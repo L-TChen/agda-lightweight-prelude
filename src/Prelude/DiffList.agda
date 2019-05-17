@@ -1,35 +1,35 @@
 module Prelude.DiffList where
 
 open import Prelude.Base
-open import Prelude.Instance
 
-open import Data.DifferenceList as DList public
-  hiding (_∷_; []; concat; drop; take; _++_; [_]; fromList; toList; lift; map)
-
-import Data.List.Properties as Lₚ
-import Data.List as L
-
-module DiffList = DList
+open import Data.DifferenceList as D
+  using (DiffList)
+module DList = D 
 
 instance
-  DiffListMonad : Monad {ℓ} DiffList
+  DiffListMonad : Monad DiffList
   DiffListMonad = record
-    { return = DList.[_]
-    ; _>>=_ = λ xs f → DList.concat $ DList.map f xs }
+    { return = D.[_]
+    ; _>>=_ = λ xs f → D.concat $ D.map f xs }
 
-  DListAlternative : Alternative {ℓ} DiffList
+  DListApplicative : Applicative DiffList
+  DListApplicative = monad⇒applicative
+  
+  DListAlternative : Alternative DiffList
   DListAlternative = record
     { azero = DList.[]
     ; _<|>_ = DList._++_ }
 
-  DList-ListLike : {A : Set ℓ} → ListLike (λ _ → DiffList A)
-  DList-ListLike {A = A} = record
-    { base  = A
-    ; empty = id ; singleton = DList.[_] ; _++_ = λ xs ys → xs ∘ ys
-    ; length   = L.length ∘ DList.toList
-    ; fromList = λ xs → L.length xs , DList.fromList xs
-    ; toList   = λ { (_ , xs) → DList.toList xs }
+  DListSequence : {A : Set ℓ} → Sequence (DiffList A)
+  DListSequence {A = A} = record
+    { zeroIdx = tt
+    ; unitIdx = tt
+    ; addIdx = λ _ _ → tt
+    ; carrier = A
+    ; [_] = D.[_]
+    ; empty = D.[]
+    ; _++_ = D._++_
+    ; length = length ∘ D.toList
+    ; fromList = λ xs → _ , D.fromList xs
+    ; toList = λ { (_ , xs) → D.toList xs }
     }
-  
---  DiffListDecEq : ⦃ _ : DecEq A ⦄ → DecEq (DiffList A)
--- this requires functional extensionality 

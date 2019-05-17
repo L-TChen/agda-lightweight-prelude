@@ -3,32 +3,38 @@
 module Prelude.Maybe where
 
 open import Prelude.Base
-open import Prelude.Instance
+  hiding (module Maybe)
 
-open import Data.Maybe as Maybe public
-  hiding (map; _>>=_; align; alignWith; ap; fromMaybe; zip; zipWith)
-import Data.Maybe.Properties as Maybeₚ
-
-
+import Data.Maybe as M
+open module Maybe = M           public
+  hiding (Maybe; just; nothing; map; _>>=_; align; alignWith; ap; fromMaybe; zip; zipWith)
+import Data.Maybe.Properties as Mₚ
 
 instance
-  MaybeMonad : Monad {ℓ} Maybe
+  MaybeMonad : Monad Maybe
   MaybeMonad = record
-    { return = just
-    ; _>>=_  = Maybe._>>=_ }
+    { return = M.just
+    ; _>>=_  = M._>>=_ }
 
-  MaybeAlternative : Alternative {ℓ} Maybe
-  MaybeAlternative = record { azero = nothing ; _<|>_ = Maybe._<∣>_ }
+  MaybeApplicative : Applicative Maybe
+  MaybeApplicative = monad⇒applicative
 
-  MaybeFoldable : Foldable {ℓ} Maybe
+  MaybeAlternative : Alternative Maybe
+  MaybeAlternative = record { azero = nothing ; _<|>_ = M._<∣>_ }
+
+  MaybeFoldable : Foldable Maybe
   MaybeFoldable = record { foldr = λ { f z nothing → z ; f z (just a) → f a z } }
   
-  MaybeTraversable : Traversable {ℓ} Maybe
-  MaybeTraversable {ℓ} = record { traverse = helper }
+  MaybeTraversable : Traversable Maybe
+  MaybeTraversable = record { traverse = helper }
     where
-      helper : {F : Set ℓ → Set ℓ} ⦃ _ : Applicative F ⦄ → (A → F B) → Maybe A → F (Maybe B)
-      helper ⦃ apF ⦄ f (just x) = just <$> f x
-      helper ⦃ apF ⦄ f nothing  = pure nothing
-  
+      helper : {F : ∀ {ℓ} → Set ℓ → Set ℓ} ⦃ _ : Applicative F ⦄ → (A → F B) → Maybe A → F (Maybe B)
+      helper f (just x) = just <$> f x
+      helper f nothing  = pure nothing
+
+  MaybeMonadErr : MonadError ⊤ Maybe
+  MaybeMonadErr = record { throw = λ _ → nothing ; try_catch_ = λ { nothing f → f tt ; x _ → x } }
+
   MaybeDecEq : ⦃ _ : DecEq A ⦄ → DecEq (Maybe A)
-  MaybeDecEq = record { _≟_ = Maybeₚ.≡-dec _≟_ }
+  MaybeDecEq = record { _≟_ = Mₚ.≡-dec _≟_ }
+

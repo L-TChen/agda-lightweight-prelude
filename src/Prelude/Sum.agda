@@ -1,22 +1,22 @@
 module Prelude.Sum where
 
 open import Prelude.Base
-open import Prelude.Instance
 
-open import Data.Sum as Sum public
+import Data.Sum
+open module Sum = Data.Sum public
   hiding (map; map₁; map₂; swap)
 
 instance
-  +-Bifunc : Bifunctor {ℓ} {ℓ′} _⊎_
+  +-Bifunc : Bifunctor _⊎_
   +-Bifunc = record { bimap = Sum.map }
 
-  +-SymBifunc : SymBifunctor {ℓ} _⊎_
+  +-SymBifunc : SymBifunctor _⊎_
   +-SymBifunc = record { swap = Sum.swap }
 
-  E+Monad : {E : Set ℓ} → Monad {ℓ} (E ⊎_)
+  E+Monad : {E : Set} → Monad (E ⊎_)
   E+Monad = record { return = inj₂ ; _>>=_ = λ { (inj₁ e) f → inj₁ e ; (inj₂ a) f → f a } }
   
-  MonadExcept : ∀ {E : Set ℓ} → MonadError E (E ⊎_)
+  MonadExcept : {E : Set} → MonadError E (E ⊎_)
   MonadExcept = record
     { throw      = inj₁
     ; try_catch_ = λ

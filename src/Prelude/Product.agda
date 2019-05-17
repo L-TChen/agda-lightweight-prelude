@@ -1,18 +1,17 @@
 module Prelude.Product where
 
 open import Prelude.Base
-open import Prelude.Instance
 
-open import Data.Product as Product public
-  hiding (map; zip; map₁; map₂; swap)
+import Data.Product as P
+open module Product = P public
+  hiding (swap; Σ; map₁; map₂; map; zip)
 
 instance
-  ×-Bifunc : Bifunctor {ℓ} {ℓ′} _×_
-  bimap {{×-Bifunc}} f g = Product.map f g
+  ×-Bifunc : Bifunctor _×_
+  bimap {{×-Bifunc}} f g = P.map f g
 
-  ×-SymBifunc : SymBifunctor {ℓ} _×_
-  swap {{×-SymBifunc}}   = Product.swap
+  ×-SymBifunc : SymBifunctor _×_
+  swap {{×-SymBifunc}}   = P.swap
 
-  ×-Show : {P : A → Set ℓ} ⦃ _ : Show A ⦄ ⦃ _ : Show B ⦄ → Show (A × B)
-  ×-Show = record
-    { show = λ { (a , b) → "( " +++ show a +++ " , " +++ show b +++ " )"} }
+  ×-Show : {P : A → Set ℓ} ⦃ _ : Show A ⦄ ⦃ _ : ∀ {x} → Show (P x) ⦄ → Show (Σ A P)
+  ×-Show = record { show = λ { (a , b) → "( " ++ show a ++ " , " ++ show b ++ " )" } }
