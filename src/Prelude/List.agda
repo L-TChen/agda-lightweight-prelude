@@ -4,9 +4,8 @@ module Prelude.List where
 
 open import Prelude.Base
 
-import Data.List as L
--- module List = L       
---  hiding (List; []; _∷_; foldr; map; [_]; _++_; length; replicate; zip; zipWith)
+open import Data.List as L public
+  hiding (List; []; _∷_; foldr; map; [_]; _++_; length; replicate; zip; zipWith)
 import Data.List.Properties as Lₚ
 
 instance
