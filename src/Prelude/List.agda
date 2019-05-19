@@ -8,6 +8,13 @@ open import Data.List as L public
   hiding (List; []; _∷_; foldr; map; [_]; _++_; length; replicate; zip; zipWith)
 import Data.List.Properties as Lₚ
 
+infixl 20 _!!_
+
+_!!_ : List A → ℕ → Maybe A
+[]       !! _       = nothing
+(x ∷ xs) !! zero    = just x
+(x ∷ xs) !! (suc n) = xs !! n
+
 instance
   ListMonad : Monad L.List
   ListMonad = record
@@ -24,6 +31,9 @@ instance
     ; _<|>_ = L._++_
     }
 
+  ListFunctor : Functor List
+  ListFunctor = IApplicative.functor ListApplicative
+  
   ListFoldable : Foldable L.List
   ListFoldable = record { foldr = L.foldr }
 

@@ -25,6 +25,9 @@ instance
   VecFoldable {n = zero}  = record { foldr = λ { f z []       → z } }
   VecFoldable {n = suc n} = record { foldr = λ { f z (x ∷ xs) → f x (foldr f z xs) } }
 
+  VecFunctor : Functor (λ A → Vec A n)
+  VecFunctor = VecApplicative .functor
+
   VecTraversable : Traversable (λ A → Vec A n)
   VecTraversable {n = zero}  = record { traverse = λ { _ []       → pure [] } }
   VecTraversable {n = suc n} = record { traverse = λ { f (x ∷ xs) → ⦇ _∷_ (f x) (traverse f xs) ⦈} } 

@@ -1,4 +1,4 @@
-{-# OPTIONS --overlapping-instances --safe --without-K #-}
+{-# OPTIONS --safe --without-K #-}
 
 module Prelude.Maybe where
 
@@ -20,18 +20,18 @@ instance
   MaybeAlternative = record { azero = nothing ; _<|>_ = M._<∣>_ }
 
   MaybeFoldable : Foldable Maybe
-  MaybeFoldable = record { foldr = λ { f z nothing → z ; f z (just a) → f a z } }
+  foldr ⦃ MaybeFoldable ⦄ f z (just x) = f x z
+  foldr ⦃ MaybeFoldable ⦄ f z nothing = z
+
+  MaybeFunctor : Functor Maybe
+  MaybeFunctor = MaybeApplicative .functor
   
   MaybeTraversable : Traversable Maybe
-  MaybeTraversable = record { traverse = helper }
-    where
-      helper : {F : ∀ {ℓ} → Set ℓ → Set ℓ} ⦃ _ : Applicative F ⦄ → (A → F B) → Maybe A → F (Maybe B)
-      helper f (just x) = just <$> f x
-      helper f nothing  = pure nothing
+  traverse ⦃ MaybeTraversable ⦄ f (just x) = just <$> f x
+  traverse ⦃ MaybeTraversable ⦄ f nothing  = pure nothing
 
   MaybeMonadErr : MonadError ⊤ Maybe
   MaybeMonadErr = record { throw = λ _ → nothing ; try_catch_ = λ { nothing f → f tt ; x _ → x } }
 
   MaybeDecEq : ⦃ _ : DecEq A ⦄ → DecEq (Maybe A)
   MaybeDecEq = record { _≟_ = Mₚ.≡-dec _≟_ }
-

@@ -13,7 +13,7 @@ instance
   ⊤-Eq = record { _==_ = λ _ _ → true }
   
   ⊤-Ord : Ord ⊤
-  ⊤-Ord = record { _<=_ = λ _ _ → true }
+  ⊤-Ord = record { _<=_ = λ _ _ → true ; _<?_ = λ _ _ → false }
 
   ⊤-DecEq : DecEq ⊤
   ⊤-DecEq = record { _≟_ = U._≟_ }

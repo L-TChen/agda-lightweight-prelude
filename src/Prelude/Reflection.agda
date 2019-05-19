@@ -1,19 +1,85 @@
+{-# OPTIONS --without-K --safe #-}
+
 module Prelude.Reflection where
 
 open import Prelude.Base
 
-import Reflection
-open module TC = Reflection public
-  hiding (returnTC; return; _>>_; _>>=_; _≟_)
+import Agda.Builtin.Reflection as Builtin
+open module TC = Builtin public
+  renaming ( left-assoc  to assocˡ
+           ; right-assoc to assocʳ
+           ; primQNameFixity to getFixity
+           ; arg-info to argInfo
+           ; agda-sort to sort
+           ; record-type to record′
+           ; data-cons   to constructor′
+           ; prim-fun    to primitive′ )
+
+Names Clauses : Set
+Names   = List Name
+Clauses = List Clause
+
+Args : (A : Set) → Set
+Args A = List (Arg A)
+
+visibility : ArgInfo → Visibility
+visibility (argInfo v _) = v
+
+relevance : ArgInfo → Relevance
+relevance (argInfo _ r) = r
+
+-- Pattern synonyms for more compact presentation
+pattern vArg ty            = arg (argInfo visible relevant)   ty
+pattern hArg ty            = arg (argInfo hidden relevant)    ty
+pattern iArg ty            = arg (argInfo instance′ relevant) ty
+pattern vLam s t           = lam visible   (abs s t)
+pattern hLam s t           = lam hidden    (abs s t)
+pattern iLam s t           = lam instance′ (abs s t)
+pattern Π[_∶_]_  s a ty    = pi a (abs s ty)
+pattern vΠ[_∶_]_ s a ty    = Π[ s ∶ (vArg a) ] ty
+pattern hΠ[_∶_]_ s a ty    = Π[ s ∶ (hArg a) ] ty
+pattern iΠ[_∶_]_ s a ty    = Π[ s ∶ (iArg a) ] ty
+
+------------------------------------------------------------------------
+-- Type checking monad
+
+-- Type errors
+
+newMeta : Type → TC Term
+newMeta = checkType unknown
 
 instance
+  NameEq : Eq Name
+  _==_ ⦃ NameEq ⦄ = Builtin.primQNameEquality
+
+  NameShow : Show Name
+  show ⦃ NameShow ⦄ = Builtin.primShowQName
+
+  MetaEq : Eq Meta
+  _==_ ⦃ MetaEq ⦄ = Builtin.primMetaEquality
+
+  MetaShow : Show Meta
+  show ⦃ MetaShow ⦄ = Builtin.primShowMeta
+
+  LitShow : Show Literal
+  show ⦃ LitShow ⦄ (nat n)    = show n
+  show ⦃ LitShow ⦄ (word64 n) = show n
+  show ⦃ LitShow ⦄ (float x)  = show x
+  show ⦃ LitShow ⦄ (char c)   = show c
+  show ⦃ LitShow ⦄ (string s) = show s
+  show ⦃ LitShow ⦄ (name x)   = show x
+  show ⦃ LitShow ⦄ (meta x)   = show x
+
   TCM : Monad TC
   TCM = record
-    { return = TC.return
-    ; _>>=_  = TC.bindTC }
+    { return = returnTC
+    ; _>>=_  = bindTC }
 
   TCA : Applicative TC
-  TCA = monad⇒applicative ⦃ TCM ⦄ 
+  TCA = monad⇒applicative ⦃ TCM ⦄
+      
+  TCFunctor : Functor TC
+  TCFunctor = TCA .functor
 
   TCAlter : Alternative TC
   TCAlter = record
@@ -37,18 +103,6 @@ instance
         where inj₂ a → return a
       handler e } 
   
-  NameIsDecEq : DecEq Name
-  NameIsDecEq = record { _≟_ = _≟-Name_ }
-  
-  TermIsDecEq : DecEq Term
-  TermIsDecEq = record { _≟_ = TC._≟_ }
-
-  LitIsDecEq : DecEq Literal
-  LitIsDecEq = record { _≟_ = _≟-Lit_ }
-
-  MetaShow : Show Meta
-  MetaShow = record { show = showMeta }
-  
   VisibilityShow : Show Visibility
   VisibilityShow = record
     { show = λ
@@ -62,136 +116,14 @@ instance
       { relevant   → "relevant"
       ; irrelevant → "irrelevant" } }
       
-  ArgInfoShow : Show Arg-info
-  ArgInfoShow = record { show = λ { (arg-info v r) → show v ++ " " ++ show r ++ " arg" } }
+  ArgInfoShow : Show ArgInfo
+  ArgInfoShow = record { show = λ { (argInfo v r) → show v ++ " " ++ show r ++ " arg" } }
 
-  NameShow : Show Name
-  NameShow = record { show = showName }
+  FunctorArg : Functor Arg 
+  _<$>_ ⦃ FunctorArg ⦄ f (arg i x) = arg i (f x)
 
-pattern var₀ x         = var x []
-pattern var₁ x a       = var x (vArg a ∷ [])
-pattern var₂ x a b     = var x (vArg a ∷ vArg b ∷ [])
-pattern var₃ x a b c   = var x (vArg a ∷ vArg b ∷ vArg c ∷ [])
-pattern var₄ x a b c d = var x (vArg a ∷ vArg b ∷ vArg c ∷ vArg d ∷ [])
+  FunctorAbs : Functor Abs
+  _<$>_ ⦃ FunctorAbs ⦄ f (abs s t) = abs s (f t)
 
-pattern con₀ c         = con c []
-pattern con₁ c x       = con c (vArg x ∷ [])
-pattern con₂ c x y     = con c (vArg x ∷ vArg y ∷ [])
-pattern con₃ c x y z   = con c (vArg x ∷ vArg y ∷ vArg z ∷ [])
-pattern con₄ c x y z u = con c (vArg x ∷ vArg y ∷ vArg z ∷ vArg u ∷ [])
-
-pattern def₀ f         = def f []
-pattern def₁ f x       = def f (vArg x ∷ [])
-pattern def₂ f x y     = def f (vArg x ∷ vArg y ∷ [])
-pattern def₃ f x y z   = def f (vArg x ∷ vArg y ∷ vArg z ∷ [])
-pattern def₄ f x y z u = def f (vArg x ∷ vArg y ∷ vArg z ∷ vArg u ∷ [])
-pattern _↦_ ps t = clause ps t
-infix 8 _↦_
-
-pattern sortSet t = sort (set t)
-pattern sortLit i = sort (lit i)
-
-Script     = Term → TC ⊤
-Types      = List Type
-Metas      = List Meta
-Terms      = List Term
-ErrorParts = List ErrorPart
-
-macro
-  runTC : {A : Set ℓ} → TC A → Script
-  runTC t _ = t >> return tt
-
-arity : Term → ℕ
-arity (Π[ _ ∶ _ ] b) = 1 + arity b
-arity _              = 0
-
-body : Arg Term → Term
-body (arg i x) = x
-
-newMeta' : Type → TC Meta
-newMeta' t = do
-  meta m [] ← checkType unknown t
-    where _ → typeError (strErr "not a meta variable" ∷ [])
-  return m
-
-module Syntax where
-  record Rec {A B C : Set} : Set where
-    field
-      Pvar : ℕ → Args A → A
-      Pcon : Name → Args A → A
-      Pdef : Name → Args A → A
-      Plam : Visibility → Abs A → A
-      Ppat-lam : List B → Args A → A
-      Ppi      : Arg A → Abs A → A
-      Psort : C → A
-      PsortSet : A → C
-      PsortLit : ℕ → C
-      PsortUnknown : C
-      Plit  : Literal → A
-      Pmeta : Meta → Args A → A
-      Punknown : A
-      Pclause : Args Pattern → A → B
-      PabsClause : Args Pattern → B -- where
-    mutual
-      recArg : Arg Term → Arg A
-      recArg (arg i x) = arg i (recTerm x)
-
-      recArgs : Args Term → List (Arg A)
-      recArgs [] = []
-      recArgs (t ∷ ts) = recArg t ∷ recArgs ts
-
-      recAbs : Abs Term → Abs A
-      recAbs (abs s t) = abs s (recTerm t)
-
-      recClause : Clause → B
-      recClause (clause ps t)      = Pclause ps (recTerm t)
-      recClause (absurd-clause ps) = PabsClause ps
-
-      recClauses : Clauses → List B
-      recClauses [] = []
-      recClauses (c ∷ cs) = recClause c ∷ recClauses cs
-
-      recSort : Sort → C
-      recSort (set t) = PsortSet (recTerm t)
-      recSort (lit n) = PsortLit n
-      recSort unknown = PsortUnknown
-
-      recTerm : Term → A
-      recTerm (var x args) = Pvar x (recArgs args)
-      recTerm (con c args) = Pcon c (recArgs args)
-      recTerm (def f args) = Pdef f (recArgs args)
-      recTerm (lam v t) = Plam v (recAbs t)
-      recTerm (pat-lam cs args) = Ppat-lam (recClauses cs) (recArgs args)
-      recTerm (pi a b) = Ppi (recArg a) (recAbs b)
-      recTerm (sort s) = Psort (recSort s)
-      recTerm (lit l) = Plit l
-      recTerm (meta x args) = Pmeta x (recArgs args)
-      recTerm unknown = Punknown
-  open Rec public
-    using (recTerm; recSort; recClauses)
-    
-  idRec : Rec
-  idRec = record
-    { Pvar = var ; Pcon = con ; Pdef = def ; Plam = lam ; Ppat-lam = pat-lam ; Ppi = pi
-    ; Psort = sort ; PsortSet = set ; PsortLit = lit ; PsortUnknown = unknown
-    ; Plit = lit ; Pmeta = meta ; Punknown = unknown
-    ; Pclause = clause
-    ; PabsClause = absurd-clause
-    }
-  weakRec : ℕ → Rec
-  weakRec n = record idRec { Pvar = λ x args → var (n + x) args }
-
-  varToMetaRec : Metas → Rec
-  varToMetaRec metaCxt = record idRec { Pvar = metaOrVar }
-    where
-      metaOrVar : ℕ → Args Term → Term
-      metaOrVar n args with metaCxt !! n
-      ... | nothing = var n args
-      ... | just x  = meta x args
-    
-  weaken : ℕ → Term → Term
-  weaken = recTerm ∘ weakRec
-
-  varsToMetas : List Meta → Term → Term
-  varsToMetas = recTerm ∘ varToMetaRec
-open Syntax public
+  TraversableArg : Traversable Arg
+  traverse {{TraversableArg}} f (arg i x) = ⦇ (arg i) (f x) ⦈

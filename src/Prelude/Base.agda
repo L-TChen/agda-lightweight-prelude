@@ -27,31 +27,31 @@ open import Agda.Builtin.Char as C     public
   ; primToUpper to toUpper
   ; primToLower to toLower
   )
+open import Agda.Builtin.Float as F    public
+  using (Float)
+open import Agda.Builtin.Word  as W    public
+  using (Word64)
   
 open import Data.Empty                 public
 open import Data.Sum as Sum            public
   hiding (map; map₁; map₂; swap)
 open import Data.Maybe                 public
-  using (Maybe; nothing; just)
+  using (Maybe; nothing; just; maybe)
 import Data.List as L
   using (length)
-
+import Data.Bool as B
+  using (if_then_else_; not)
+  renaming (_∧_ to _and_; _∨_ to _or_)
+open import  Data.Nat.Show             public
+  renaming (show to showℕ)
 open import Function                   public
 open import Relation.Nullary           public
---open import Relation.Nullary.Decidable public
---  hiding (map)
   
 variable
   ℓ ℓ′ ℓ₁ ℓ₂ ℓ₃ : Level
   A B C D : Set ℓ
   n m l   : ℕ
-
-infixl 20 _!!_
-_!!_ : List A → ℕ → Maybe A
-[]       !! _       = nothing
-(x ∷ xs) !! zero    = just x
-(x ∷ xs) !! (suc n) = xs !! n
-
+  
 ------------------------------------------------------------------------
 -- Type classes: Enum, Eq, Ord, Show, 
 record Eq (A : Set ℓ) : Set (lsuc ℓ) where
@@ -60,17 +60,25 @@ record Eq (A : Set ℓ) : Set (lsuc ℓ) where
     _==_ : A → A → Bool
     
   _/=_ : A → A → Bool
-  x /= y with x == y
-  ... | true  = false
-  ... | false = true
+  x /= y = B.not (x == y)
 open Eq ⦃...⦄ public
 
 instance
-  StringE : Eq String
-  StringE = record { _==_ = primStringEquality }
-
   NatE   : Eq ℕ
   NatE = record { _==_ = Nat._==_ }
+  
+  CharEq   : Eq Char
+  _==_ ⦃ CharEq ⦄ = C.primCharEquality
+  
+  StringE : Eq String
+  _==_ ⦃ StringE ⦄ = primStringEquality
+
+  FloatE : Eq Float
+  _==_ ⦃ FloatE ⦄ = F.primFloatEquality
+
+  WordEq : Eq Word64
+  _==_ ⦃ WordEq ⦄ x y = W.primWord64ToNat x == W.primWord64ToNat y
+
 
 record Enum (A : Set ℓ) : Set (lsuc ℓ) where
   field
@@ -88,21 +96,25 @@ instance
   ℕEnum = record { toEnum = id ; fromEnum = id }
 
 record Ord (A : Set ℓ) : Set (lsuc ℓ) where
-  infix 6 _<=_
+  infix 5 _<=_
+  infix 5 _<?_
   field
     _<=_ : A → A → Bool
+    _<?_ : A → A → Bool 
     overlap ⦃ eq ⦄ : Eq A
 open Ord ⦃...⦄ public
 
+leqOrd : ⦃ _ : Eq A ⦄ → (A → A → Bool) → Ord A
+_<=_ ⦃ leqOrd _<=_ ⦄ = _<=_
+_<?_ ⦃ leqOrd _<=_ ⦄ x y = (x <= y) B.and (x /= y) 
+
+lessOrd : ⦃ _ : Eq A ⦄ → (A → A → Bool) → Ord A
+_<=_ ⦃ lessOrd _<?_ ⦄ x y = x <? y B.or (x == y)
+_<?_ ⦃ lessOrd _<?_ ⦄ = _<?_
+
 instance
   NatOrd : Ord ℕ
-  NatOrd = record { _<=_ = leq }
-    where
-      leq : ℕ → ℕ → Bool
-      leq x y with x Nat.< y | x Nat.== y
-      ... | true  | _ = true
-      ... | false | true  = true
-      ... | false | false = false
+  NatOrd = lessOrd Nat._<_
   
 record Show (A : Set ℓ) : Set (lsuc ℓ) where
   field
@@ -111,9 +123,17 @@ open Show ⦃...⦄ public
 
 instance
   charS   : Show Char
-  charS   = record { show = primShowChar } 
+  show ⦃ charS ⦄ = primShowChar
   stringS : Show String
-  stringS = record { show = primShowString }
+  show ⦃ stringS ⦄ = primShowString
+  ℕS      : Show ℕ
+  show ⦃ ℕS ⦄ = showℕ
+  
+  floatS : Show Float
+  show ⦃ floatS ⦄ = F.primShowFloat
+
+  wordS : Show Word64
+  show ⦃ wordS ⦄ = show ∘ W.primWord64ToNat
 ------------------------------------------------------------------------
 --
 
@@ -188,9 +208,10 @@ record DecEq (A : Set ℓ) : Set (lsuc ℓ) where
   field
     _≟_ : (x y : A) → Dec (x ≡ y)
     
---  instance
---    DecEq⇒Eq : Eq A
---    DecEq⇒Eq = record { _==_ = λ x y → ⌊ x ≟ y ⌋ }
+  DecEq⇒Eq : Eq A
+  _==_ ⦃ DecEq⇒Eq ⦄ x y with x ≟ y
+  ... | yes _ = true
+  ... | no  _ = false
 open DecEq ⦃...⦄ public
 
 record DecOrd (A : Set ℓ) : Set (lsuc ℓ) where
@@ -199,6 +220,14 @@ record DecOrd (A : Set ℓ) : Set (lsuc ℓ) where
     _≤?_ : (x y : A) → Dec (x ≤ y)
 
   _≥?_ = flip _≤?_
+
+  DecOrd⇒Ord : ⦃ _ : Eq A ⦄ → Ord A
+  _<=_ ⦃ DecOrd⇒Ord ⦄ x y with x ≤? y
+  ... | yes _ = true
+  ... | no  _ = false
+  _<?_ ⦃ DecOrd⇒Ord ⦄ x y with x ≤? y | x /= y
+  ... | yes _ | true = true
+  ... |     _ | _    = false
 open DecOrd ⦃...⦄ public
 
 ------------------------------------------------------------------------
@@ -253,7 +282,7 @@ record IApplicative (F : IFun I) : Setω where
   field
     pure  : A → F i i A
     _<*>_ : F i j (A → B) → F j k A → F i k B
-    instance overlap ⦃ functor ⦄ : Functor (F i j)
+    overlap ⦃ functor ⦄ : Functor (F i j)
     
   zipWith : (A → B → C) → F i j A → F j k B → F i k C
   zipWith f x y = ⦇ f x y ⦈
@@ -275,7 +304,7 @@ record IMonad (M : IFun I) : Setω where
   field
     return : A → M i i A
     _>>=_  : M i j A → (A → M j k B) → M i k B
-  
+
   _=<<_ : (A → M j k B) → M i j A → M i k B
   f =<< c = c >>= f
   
@@ -288,6 +317,9 @@ record IMonad (M : IFun I) : Setω where
   _<=<_ : (B → M j k C) → (A → M i j B) → (A → M i k C)
   g <=< f = f >=> g
 
+  infixr 0 caseM_of_
+  caseM_of_ = _>>=_
+  
   ap : M i j (A → B) → M j k A → M _ _ B
   ap mf ma = mf >>= λ f → ma >>= return ∘ f
 
@@ -391,7 +423,6 @@ record Traversable (T : Fun) : Setω where
   field
     traverse : ⦃ _ : Applicative F ⦄ → (A → F B) → T A → F (T B)
     ⦃ functor  ⦄ : Functor T
-    ⦃ foldable ⦄ : Foldable T
 
   sequence : ⦃ _ : Applicative F ⦄ → T $ F A → F $ T A
   sequence = traverse id

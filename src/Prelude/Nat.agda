@@ -4,7 +4,9 @@ module Prelude.Nat where
 
 open import Prelude.Base
 
-import Data.Nat as Nat
+open import Data.Nat as Nat public
+  hiding (_<_; _≤_; _≤?_; _<?_; _>_; _≟_; _≥_; _≥?_)
+  renaming (_⊔_ to max; _⊓_ to min)
 open import Data.Nat.Properties as Natₚ
 
 instance
