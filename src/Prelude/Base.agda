@@ -299,7 +299,7 @@ Applicative : Fun → Setω
 Applicative F = IApplicative {I = ⊤} λ _ _ → F
 
 record IMonad (M : IFun I) : Setω where
-  infixl 1 _>>=_ _>>_ _>=>_
+  infixl 1 _>>=_ _>>_ _>=>_ _>>_
   infixr 1 _=<<_ _<=<_
   field
     return : A → M i i A
@@ -311,6 +311,9 @@ record IMonad (M : IFun I) : Setω where
   _>>_ : M i j A → M j k B → M i k B
   ma >> mb = ma >>= λ _ → mb
 
+  _<<_ : M j k B → M i j A → M i k B
+  mb << ma = ma >> mb
+  
   _>=>_ : (A → M i j B) → (B → M j k C) → (A → M i k C)
   f >=> g = _=<<_ g ∘ f
 
@@ -325,7 +328,6 @@ record IMonad (M : IFun I) : Setω where
 
   join : M i j (M j k A) → M i k A
   join ma = ma >>= id
-
 open IMonad ⦃...⦄ public
 
 monad⇒applicative : {M : IFun I} ⦃ _ : IMonad M ⦄ → IApplicative M
@@ -340,7 +342,15 @@ Monad M = IMonad {I = ⊤} λ _ _ → M
 
 instance
   E+Monad : {E : Set} → Monad (E ⊎_)
-  E+Monad = record { return = inj₂ ; _>>=_ = λ { (inj₁ e) f → inj₁ e ; (inj₂ a) f → f a } }
+  return ⦃ E+Monad ⦄ = inj₂
+  _>>=_ ⦃ E+Monad ⦄ (inj₁ x) f = inj₁ x
+  _>>=_ ⦃ E+Monad ⦄ (inj₂ y) f = f y
+  
+MonadE+Monad : ⦃ _ : Monad F ⦄ {E : Set} → Monad (F ∘ (E ⊎_))
+return ⦃ MonadE+Monad ⦄ a    = return $ inj₂ a
+_>>=_  ⦃ MonadE+Monad ⦄ ma f = do
+  inj₂ a ← ma where (inj₁ e) → return $ inj₁ e
+  f a
   
 record IMAlternative (F : C → IFun I) : Setω where
   infixr 3 _<|>_
@@ -399,12 +409,9 @@ MonadError E M = IMonadError {I = ⊤} E λ _ _ → M
 
 instance
   MonadExcept : {E : Set} → MonadError E (E ⊎_)
-  MonadExcept = record
-    { throw      = inj₁
-    ; try_catch_ = λ
-      { (inj₁ e) f → f e
-      ; (inj₂ a) _ → inj₂ a }
-    }
+  throw      ⦃ MonadExcept ⦄ = inj₁
+  try_catch_ ⦃ MonadExcept ⦄ (inj₁ e) f = f e
+  try_catch_ ⦃ MonadExcept ⦄ (inj₂ a) _ = inj₂ a
 ------------------------------------------------------------------------
 -- Iterator idioms  
 

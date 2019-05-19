@@ -4,7 +4,7 @@ module Prelude.DiffList where
 
 open import Prelude.Base
 
-open import Data.DifferenceList as D
+open import Data.DifferenceList as D public
   using (DiffList)
 
 instance
