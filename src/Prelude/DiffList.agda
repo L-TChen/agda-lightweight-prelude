@@ -2,7 +2,7 @@
 
 module Prelude.DiffList where
 
-open import Prelude.Base
+open import Prelude.Core
 
 open import Data.DifferenceList as D public
   using (DiffList)

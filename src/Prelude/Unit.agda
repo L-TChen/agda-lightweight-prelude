@@ -2,7 +2,8 @@
 
 module Prelude.Unit where
 
-open import Prelude.Base
+open import Prelude.Core
+open import Prelude.Decidable
 
 import Data.Unit as U 
 --open module Unit = U public

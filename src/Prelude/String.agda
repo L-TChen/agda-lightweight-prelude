@@ -2,7 +2,8 @@
 
 module Prelude.String where
 
-open import Prelude.Base
+open import Prelude.Core
+open import Prelude.Decidable
 
 import Data.String as S
 

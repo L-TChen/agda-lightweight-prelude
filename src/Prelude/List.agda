@@ -2,8 +2,11 @@
 
 module Prelude.List where
 
-open import Prelude.Base
+open import Prelude.Core
+open import Prelude.Decidable
 
+open import Data.Maybe
+  using (Maybe; nothing; just)
 open import Data.List as L public
   hiding (List; []; _∷_; foldr; map; [_]; _++_; length; replicate; zip; zipWith)
 import Data.List.Properties as Lₚ

@@ -2,8 +2,11 @@
 
 module Prelude.Maybe where
 
-open import Prelude.Base
+open import Prelude.Core
+open import Prelude.Decidable
 
+open import Data.Maybe as M  public
+  using (Maybe; nothing; just; maybe)
 import Data.Maybe as M
 import Data.Maybe.Properties as Mₚ
 

@@ -2,8 +2,9 @@
 
 module Prelude.Vec where
 
-open import Prelude.Base
+open import Prelude.Core
 
+import Data.List as L
 open import Data.Vec as V public
   using (Vec; []; _∷_)
 
@@ -49,6 +50,6 @@ instance
     ; empty = []
     ; _++_ = V._++_
     ; length   = λ {n} xs → n
-    ; fromList = λ xs → length xs , V.fromList xs 
+    ; fromList = λ xs → L.length xs , V.fromList xs 
     ; toList   = λ { (n , xs) → V.toList xs }
     }

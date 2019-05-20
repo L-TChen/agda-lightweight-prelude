@@ -2,10 +2,11 @@
 
 module Prelude.Bool where
 
-open import Prelude.Base
+open import Prelude.Core
+open import Prelude.Decidable
 
 open import Data.Bool as B public
-  hiding (Bool; true; false; _≟_; decSetoid; _≤_; _<_; _≤?_; _<?_)
+  hiding (Bool; true; false; _≟_; decSetoid; _≤_; _<_; _≤?_; _<?_; not)
 
 instance
   BoolDecEq : DecEq Bool

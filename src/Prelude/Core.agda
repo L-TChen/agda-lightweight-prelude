@@ -1,9 +1,10 @@
 {-# OPTIONS --safe --without-K  #-}
 
-module Prelude.Base where
+module Prelude.Core where
 
-open import Agda.Primitive             public
+open import Prelude.Core.Function      public
 
+open import Agda.Primitive             public  
 open import Agda.Builtin.Unit          public
 open import Agda.Builtin.Nat as Nat    public
   using (suc; zero; _+_) renaming (Nat to ℕ)
@@ -32,25 +33,43 @@ open import Agda.Builtin.Float as F    public
 open import Agda.Builtin.Word  as W    public
   using (Word64)
   
-open import Data.Empty                 public
-open import Data.Sum as Sum            public
-  hiding (map; map₁; map₂; swap)
-open import Data.Maybe                 public
-  using (Maybe; nothing; just; maybe)
-import Data.List as L
-  using (length)
-import Data.Bool as B
-  using (if_then_else_; not)
-  renaming (_∧_ to _and_; _∨_ to _or_)
-open import  Data.Nat.Show             public
-  renaming (show to showℕ)
-open import Function                   public
-open import Relation.Nullary           public
-  
 variable
   ℓ ℓ′ ℓ₁ ℓ₂ ℓ₃ : Level
   A B C D : Set ℓ
   n m l   : ℕ
+
+------------------------------------------------------------------------
+--
+
+data ⊥ : Set where
+
+------------------------------------------------------------------------
+-- Basic functions
+
+not : Bool → Bool
+not false = true
+not true  = false
+
+infixr 6 _&&_
+infixr 6 _||_
+_&&_ : Bool → Bool → Bool
+_&&_ false false = false
+_&&_ false true  = false
+_&&_ true false  = false
+_&&_ true true   = true
+
+_||_ : Bool → Bool → Bool
+_||_ false false = false
+_||_ false true  = true
+_||_ true false  = true
+_||_ true true   = true
+
+private
+  
+  module L where
+    length : List A → ℕ
+    length []       = 0
+    length (x ∷ xs) = 1 + length xs
   
 ------------------------------------------------------------------------
 -- Type classes: Enum, Eq, Ord, Show, 
@@ -60,7 +79,7 @@ record Eq (A : Set ℓ) : Set (lsuc ℓ) where
     _==_ : A → A → Bool
     
   _/=_ : A → A → Bool
-  x /= y = B.not (x == y)
+  x /= y = not $ x == y
 open Eq ⦃...⦄ public
 
 instance
@@ -78,7 +97,6 @@ instance
 
   WordEq : Eq Word64
   _==_ ⦃ WordEq ⦄ x y = W.primWord64ToNat x == W.primWord64ToNat y
-
 
 record Enum (A : Set ℓ) : Set (lsuc ℓ) where
   field
@@ -106,10 +124,10 @@ open Ord ⦃...⦄ public
 
 leqOrd : ⦃ _ : Eq A ⦄ → (A → A → Bool) → Ord A
 _<=_ ⦃ leqOrd _<=_ ⦄ = _<=_
-_<?_ ⦃ leqOrd _<=_ ⦄ x y = (x <= y) B.and (x /= y) 
+_<?_ ⦃ leqOrd _<=_ ⦄ x y = (x <= y) && (x /= y) 
 
 lessOrd : ⦃ _ : Eq A ⦄ → (A → A → Bool) → Ord A
-_<=_ ⦃ lessOrd _<?_ ⦄ x y = x <? y B.or (x == y)
+_<=_ ⦃ lessOrd _<?_ ⦄ x y = x <? y || (x == y)
 _<?_ ⦃ lessOrd _<?_ ⦄ = _<?_
 
 instance
@@ -126,14 +144,10 @@ instance
   show ⦃ charS ⦄ = primShowChar
   stringS : Show String
   show ⦃ stringS ⦄ = primShowString
-  ℕS      : Show ℕ
-  show ⦃ ℕS ⦄ = showℕ
-  
+
   floatS : Show Float
   show ⦃ floatS ⦄ = F.primShowFloat
 
-  wordS : Show Word64
-  show ⦃ wordS ⦄ = show ∘ W.primWord64ToNat
 ------------------------------------------------------------------------
 --
 
@@ -204,32 +218,6 @@ record POrd (A : Set ℓ) : Set (lsuc ℓ) where
   _>_ = flip _<_ 
 open POrd ⦃...⦄ public
 
-record DecEq (A : Set ℓ) : Set (lsuc ℓ) where
-  field
-    _≟_ : (x y : A) → Dec (x ≡ y)
-    
-  DecEq⇒Eq : Eq A
-  _==_ ⦃ DecEq⇒Eq ⦄ x y with x ≟ y
-  ... | yes _ = true
-  ... | no  _ = false
-open DecEq ⦃...⦄ public
-
-record DecOrd (A : Set ℓ) : Set (lsuc ℓ) where
-  field
-    ⦃ pord ⦄ : POrd A
-    _≤?_ : (x y : A) → Dec (x ≤ y)
-
-  _≥?_ = flip _≤?_
-
-  DecOrd⇒Ord : ⦃ _ : Eq A ⦄ → Ord A
-  _<=_ ⦃ DecOrd⇒Ord ⦄ x y with x ≤? y
-  ... | yes _ = true
-  ... | no  _ = false
-  _<?_ ⦃ DecOrd⇒Ord ⦄ x y with x ≤? y | x /= y
-  ... | yes _ | true = true
-  ... |     _ | _    = false
-open DecOrd ⦃...⦄ public
-
 ------------------------------------------------------------------------
 -- Functor, Bifunctor, indexed applicative functor / monad
 
@@ -270,13 +258,6 @@ record SymBifunctor (T : ∀ {ℓ₁ ℓ₂} → Set ℓ₁ → Set ℓ₂ → S
     overlap ⦃ bifunc ⦄ : Bifunctor T
 open SymBifunctor ⦃...⦄ public
 
-instance
-  +-Bifunc : Bifunctor _⊎_
-  +-Bifunc = record { bimap = Sum.map }
-
-  +-SymBifunc : SymBifunctor _⊎_
-  +-SymBifunc = record { swap = Sum.swap }
-  
 record IApplicative (F : IFun I) : Setω where
   infixl 4 _<*>_
   field
@@ -340,18 +321,6 @@ monad⇒applicative = record
 Monad : Fun → Setω
 Monad M = IMonad {I = ⊤} λ _ _ → M
 
-instance
-  E+Monad : {E : Set} → Monad (E ⊎_)
-  return ⦃ E+Monad ⦄ = inj₂
-  _>>=_ ⦃ E+Monad ⦄ (inj₁ x) f = inj₁ x
-  _>>=_ ⦃ E+Monad ⦄ (inj₂ y) f = f y
-  
-MonadE+Monad : ⦃ _ : Monad F ⦄ {E : Set} → Monad (F ∘ (E ⊎_))
-return ⦃ MonadE+Monad ⦄ a    = return $ inj₂ a
-_>>=_  ⦃ MonadE+Monad ⦄ ma f = do
-  inj₂ a ← ma where (inj₁ e) → return $ inj₁ e
-  f a
-  
 record IMAlternative (F : C → IFun I) : Setω where
   infixr 3 _<|>_
   field
@@ -389,9 +358,9 @@ MonadPlus : Fun → Setω
 MonadPlus M = IMonadPlus {I = ⊤} λ _ _ → M
 
 record IMonadError (E : Set) (M : IFun I) : Setω where
-  infixl 4 try_catch_
-  infix  4 try_finally_
-  infix  5 _finally_
+  infixl 6 try_catch_
+  infix  6 try_finally_
+  infix  7 _finally_
   field
     throw : E → M i j A
     try_catch_ : M i j A → (E → M j k A) → M i k A
@@ -407,11 +376,14 @@ open IMonadError ⦃...⦄ public
 MonadError : (E : Set) → (M : Fun) → Setω
 MonadError E M = IMonadError {I = ⊤} E λ _ _ → M
 
-instance
-  MonadExcept : {E : Set} → MonadError E (E ⊎_)
-  throw      ⦃ MonadExcept ⦄ = inj₁
-  try_catch_ ⦃ MonadExcept ⦄ (inj₁ e) f = f e
-  try_catch_ ⦃ MonadExcept ⦄ (inj₂ a) _ = inj₂ a
+record IMonadFail (M : IFun I) : Setω where
+  field
+    ⦃ monad ⦄ : IMonad M
+    fail      : {A : Set ℓ} → String → M i j A 
+open IMonadFail ⦃...⦄ public
+
+MonadFail : (M : Fun) → Setω
+MonadFail M = IMonadFail {I = ⊤} λ _ _ → M
 ------------------------------------------------------------------------
 -- Iterator idioms  
 

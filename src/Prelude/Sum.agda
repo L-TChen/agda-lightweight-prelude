@@ -1,10 +1,16 @@
 module Prelude.Sum where
 
-open import Prelude.Base
+open import Prelude.Core
 
 import Data.Sum
 open module Sum = Data.Sum public
   hiding (map; map₁; map₂; swap)
+
+MonadE+Monad : {F : Fun} ⦃ _ : Monad F ⦄ {E : Set} → Monad (F ∘ (E ⊎_))
+return ⦃ MonadE+Monad ⦄ a    = return $ inj₂ a
+_>>=_  ⦃ MonadE+Monad ⦄ ma f = do
+  inj₂ a ← ma where (inj₁ e) → return $ inj₁ e
+  f a
 
 instance
   +-Bifunc : Bifunctor _⊎_

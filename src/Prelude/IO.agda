@@ -2,7 +2,7 @@
 
 module Prelude.IO where
 
-open import Prelude.Base
+open import Prelude.Core
 
 open import IO.Primitive as IO public
   hiding (_>>=_; return)
