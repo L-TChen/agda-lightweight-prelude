@@ -1,3 +1,5 @@
+{-# OPTIONS --safe --without-K  #-}
+
 module Prelude.Sum where
 
 open import Prelude.Core
