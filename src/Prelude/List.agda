@@ -19,6 +19,7 @@ _!!_ : List A → ℕ → Maybe A
 (x ∷ xs) !! (suc n) = xs !! n
 
 instance
+{-
   ListMonad : Monad L.List
   ListMonad = record
     { return = L.[_]
@@ -27,23 +28,20 @@ instance
 
   ListApplicative : Applicative List
   ListApplicative = monad⇒applicative
-
+-}
   ListAlternative : Alternative L.List
   ListAlternative = record
     { azero = []
     ; _<|>_ = L._++_
     }
-
-  ListFunctor : Functor List
-  ListFunctor = IApplicative.functor ListApplicative
-  
+{-
   ListFoldable : Foldable L.List
   ListFoldable = record { foldr = L.foldr }
 
   ListTraversable : Traversable L.List
   ListTraversable = record
     { traverse = λ f → L.foldr (λ x ys → ⦇ _∷_ (f x) ys ⦈) (pure []) }
-
+-}
   ListShow : ⦃ _ : Show A ⦄ → Show (List A)
   ListShow = record { show = L.foldr (λ x xs → show x ++ " ∷ " ++ xs) " []" }
 

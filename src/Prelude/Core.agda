@@ -207,7 +207,7 @@ data ⊥ : Set where
 ⊥-elim : ⊥ → A
 ⊥-elim ()
 ------------------------------------------------------------------------
--- Basic functions
+-- Basic Bool functions
 
 not : Bool → Bool
 not false = true
@@ -227,12 +227,32 @@ _||_ false true  = true
 _||_ true false  = true
 _||_ true true   = true
 
+------------------------------------------------------------------------
+-- Basic list functions.
+-- All of them should have been supplied by agda-stdlib, so keep them private.
+
 private
   module L where
+    foldr : (A → B → B) → B → List A → B
+    foldr f z []       = z
+    foldr f z (x ∷ xs) = f x (foldr f z xs)
+    
     length : List A → ℕ
-    length []       = 0
-    length (x ∷ xs) = 1 + length xs
-  
+    length = foldr (λ _ → suc) 0
+
+    fmap : (A → B) → List A → List B
+    fmap f = foldr (λ x → f x ∷_) []
+
+    _++_ : List A → List A → List A
+    []       ++ ys = ys
+    (x ∷ xs) ++ ys = x ∷ xs ++ ys
+    
+    concat : List (List A) → List A
+    concat = foldr _++_ []
+
+    concatMap : (A → List B) → List A → List B
+    concatMap f = concat ∘ fmap f
+
 ------------------------------------------------------------------------
 -- Type classes: Enum, Eq, Ord, Show, 
 record Eq (A : Set ℓ) : Set (lsuc ℓ) where
@@ -347,16 +367,12 @@ instance
     { carrier  = A
     ; [_]      = _∷ []
     ; empty    = []
-    ; _++_     = append
+    ; _++_     = L._++_
     ; length   = L.length
     ; fromList = λ xs → _ , xs
     ; toList   = snd
     }
-    where
-      append : List A → List A → List A
-      append []       ys = ys
-      append (x ∷ xs) ys = x ∷ append xs ys
- 
+    
   stringSeq : Sequence String
   stringSeq = record
     { carrier = Char
@@ -402,6 +418,10 @@ record Functor (T : Fun) : Setω where
     _<$>_ : (A → B) → T A → T B
   map = _<$>_
 open Functor ⦃...⦄ public
+
+instance
+  listFunc : Functor List
+  _<$>_ ⦃ listFunc ⦄ = L.fmap
   
 record Bifunctor (T : ∀ {ℓ₁ ℓ₂} → Set ℓ₁ → Set ℓ₂ → Set (ℓ₁ ⊔ ℓ₂)) : Setω where
   field
@@ -483,6 +503,14 @@ monad⇒applicative = record
 Monad : Fun → Setω
 Monad M = IMonad {I = ⊤} λ _ _ → M
 
+instance
+  MonadList : Monad List
+  return ⦃ MonadList ⦄      = _∷ []
+  _>>=_  ⦃ MonadList ⦄ xs f = L.concatMap f xs
+
+  ApplicativeList : Applicative List
+  ApplicativeList = monad⇒applicative 
+
 record IMAlternative (F : C → IFun I) : Setω where
   infixr 3 _<|>_
   field
@@ -560,6 +588,10 @@ record Foldable (T : Fun) : Setω where
   asum = foldr _<|>_ azero
 open Foldable ⦃...⦄ public
 
+instance
+  ListFoldable : Foldable List
+  foldr ⦃ ListFoldable ⦄ = L.foldr
+
 record Traversable (T : Fun) : Setω where
   field
     traverse : ⦃ _ : Applicative F ⦄ → (A → F B) → T A → F (T B)
@@ -571,3 +603,7 @@ record Traversable (T : Fun) : Setω where
   for : ⦃ _ : Applicative F ⦄ → T A → (A → F B) → F $ T B
   for = flip traverse
 open Traversable ⦃...⦄ public
+
+instance
+  ListTraversable : Traversable List
+  traverse ⦃ ListTraversable ⦄ f = L.foldr (λ x ys → ⦇ _∷_ (f x) ys ⦈) (pure [])
