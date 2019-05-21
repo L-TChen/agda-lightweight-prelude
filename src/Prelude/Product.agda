@@ -6,7 +6,7 @@ module Prelude.Product where
 open import Prelude.Core
 
 open import Data.Product as P public
-  hiding (swap; map; map₂; map₁; zip)
+  hiding (_×_; _,′_; swap; map; map₂; map₁; zip)
 
 instance
   ×-Bifunc : Bifunctor P._×_
