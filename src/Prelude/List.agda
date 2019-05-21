@@ -8,7 +8,7 @@ open import Prelude.Decidable
 open import Data.Maybe
   using (Maybe; nothing; just)
 open import Data.List as L public
-  hiding (List; []; _∷_; foldr; map; [_]; _++_; length; replicate; zip; zipWith)
+  hiding (List; []; _∷_; foldr; map; all; and; any; or; [_]; _++_; length; replicate; zip; zipWith)
 import Data.List.Properties as Lₚ
 
 infixl 20 _!!_

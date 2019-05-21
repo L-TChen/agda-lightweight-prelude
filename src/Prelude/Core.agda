@@ -224,6 +224,7 @@ not true  = false
 
 infixr 6 _&&_
 infixr 6 _||_
+infix  0 if_then_else_
 _&&_ : Bool → Bool → Bool
 _&&_ false false = false
 _&&_ false true  = false
@@ -236,6 +237,9 @@ _||_ false true  = true
 _||_ true false  = true
 _||_ true true   = true
 
+if_then_else_ : Bool → A → A → A
+if false then a else b = b
+if true  then a else b = a
 ------------------------------------------------------------------------
 -- Basic list functions.
 -- All of them should have been supplied by agda-stdlib, so keep them private.
@@ -265,7 +269,7 @@ private
 ------------------------------------------------------------------------
 -- Type classes: Enum, Eq, Ord, Show, 
 record Eq (A : Set ℓ) : Set (lsuc ℓ) where
-  infix 6 _==_ _/=_
+  infix 8 _==_ _/=_
   field
     _==_ : A → A → Bool
     
@@ -349,7 +353,13 @@ open Monoid ⦃...⦄ public
 
 instance
   ⊤-monoid : Monoid ⊤ (λ _ _ → tt)
-  ⊤-monoid = record { ε = tt }
+  ε ⦃ ⊤-monoid ⦄ = tt
+
+  &&-monoid : Monoid Bool _&&_
+  ε ⦃ &&-monoid ⦄ = true
+
+  ||-monoid : Monoid Bool _||_
+  ε ⦃ ||-monoid ⦄ = false
     
 record ISequence {A : Set} (Seq : A → Set ℓ) : Set (lsuc ℓ) where
   infixr 5 _++_
@@ -595,6 +605,14 @@ record Foldable (T : Fun) : Setω where
 
   asum : ⦃ _ : Alternative F ⦄ → T (F A) -> F A
   asum = foldr _<|>_ azero
+
+  and or : T Bool → Bool
+  and = foldMap _&&_ id
+  or  = foldMap _||_ id
+
+  all any : (A → Bool) → T A → Bool
+  all f = foldMap _&&_ f
+  any f = foldMap _||_ f
 open Foldable ⦃...⦄ public
 
 instance
