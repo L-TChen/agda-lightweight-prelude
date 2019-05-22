@@ -266,15 +266,15 @@ private
     concatMap : (A → List B) → List A → List B
     concatMap f = concat ∘ fmap f
 
-    take : ℕ → List A → List A
-    take zero    xs       = []
-    take (suc n) []       = []
-    take (suc n) (x ∷ xs) = x ∷ take n xs
+take : ℕ → List A → List A
+take zero    xs       = []
+take (suc n) []       = []
+take (suc n) (x ∷ xs) = x ∷ take n xs
 
-    drop : ℕ → List A → List A
-    drop zero    xs       = xs
-    drop (suc n) []       = []
-    drop (suc n) (x ∷ xs) = drop n xs
+drop : ℕ → List A → List A
+drop zero    xs       = xs
+drop (suc n) []       = []
+drop (suc n) (x ∷ xs) = drop n xs
 ------------------------------------------------------------------------
 -- Type classes: Enum, Eq, Ord, Show, 
 record Eq (A : Set ℓ) : Set (lsuc ℓ) where
