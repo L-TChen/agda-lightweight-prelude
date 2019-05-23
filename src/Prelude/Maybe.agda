@@ -12,9 +12,9 @@ import Data.Maybe.Properties as Mₚ
 
 instance
   MaybeMonad : Monad Maybe
-  MaybeMonad = record
-    { return = M.just
-    ; _>>=_  = M._>>=_ }
+  return ⦃ MaybeMonad ⦄ = just
+  _>>=_ ⦃ MaybeMonad ⦄ (just x) f = f x
+  _>>=_ ⦃ MaybeMonad ⦄ nothing f  = nothing
 
   MaybeApplicative : Applicative Maybe
   MaybeApplicative = monad⇒applicative

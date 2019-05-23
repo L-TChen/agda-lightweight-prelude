@@ -10,8 +10,6 @@ open import Prelude.Product    public
 open import Prelude.Maybe      public
 
 open import Prelude.String     public
-open import Prelude.Unit       public
-open import Prelude.Bool       public
 open import Prelude.List       public
 open import Prelude.DiffList   public
 open import Prelude.Vec        public

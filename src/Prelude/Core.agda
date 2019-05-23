@@ -218,12 +218,8 @@ _,′_ = _,_
 ------------------------------------------------------------------------
 -- Basic Bool functions
 
-not : Bool → Bool
-not false = true
-not true  = false
-
 infixr 6 _&&_
-infixr 6 _||_
+infixr 5 _||_ _xor_
 infix  0 if_then_else_
 _&&_ : Bool → Bool → Bool
 _&&_ false false = false
@@ -236,6 +232,14 @@ _||_ false false = false
 _||_ false true  = true
 _||_ true false  = true
 _||_ true true   = true
+
+not : Bool → Bool
+not false = true
+not true  = false
+
+_xor_ : Bool → Bool → Bool
+true  xor b = not b
+false xor b = b
 
 if_then_else_ : Bool → A → A → A
 if false then a else b = b
@@ -302,6 +306,15 @@ instance
   WordEq : Eq Word64
   _==_ ⦃ WordEq ⦄ x y = W.primWord64ToNat x == W.primWord64ToNat y
 
+  BoolEq : Eq Bool
+  _==_ ⦃ BoolEq ⦄ false false = true
+  _==_ ⦃ BoolEq ⦄ true true   = true
+  _==_ ⦃ BoolEq ⦄ _ _         = false
+
+  ⊤-Eq : Eq ⊤  
+  _==_ ⦃ ⊤-Eq ⦄ _ _ = true
+
+  
 record Enum (A : Set ℓ) : Set (lsuc ℓ) where
   field
     toEnum    : ℕ → A
@@ -337,6 +350,9 @@ _<?_ ⦃ lessOrd _<?_ ⦄ = _<?_
 instance
   NatOrd : Ord ℕ
   NatOrd = lessOrd Nat._<_
+
+  ⊤-Ord : Ord ⊤
+  ⊤-Ord = leqOrd λ _ _ → true
   
 record Show (A : Set ℓ) : Set (lsuc ℓ) where
   field
