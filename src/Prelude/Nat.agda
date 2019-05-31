@@ -9,7 +9,7 @@ open import Agda.Builtin.Word  as W    public
   using (Word64)
   
 open import Data.Nat as Nat public
-  hiding (_<_; _≤_; _≤?_; _<?_; _>_; _≟_; _≥_; _≥?_)
+  hiding (_<_; _≤_; _≤?_; _<?_; _>_; _≟_; _≥_; _≥?_; _∸_; _*_)
   renaming (_⊔_ to max; _⊓_ to min)
 open import Data.Nat.Properties as Natₚ
 open import  Data.Nat.Show             public

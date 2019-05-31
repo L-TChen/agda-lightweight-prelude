@@ -9,7 +9,8 @@ open import Agda.Builtin.Strict
               ; primForceLemma to force-≡) public
 open import Agda.Builtin.Unit          public
 open import Agda.Builtin.Nat as Nat    public
-  using (suc; zero; _+_) renaming (Nat to ℕ)
+  using (suc; zero; _+_; _*_)
+  renaming (Nat to ℕ; _-_ to _∸_)
 open import Agda.Builtin.Sigma         public
   hiding (module Σ)
 open import Agda.Builtin.List          public
@@ -165,6 +166,17 @@ _|>′_ = _|>_
 case_of_ : A → (A → B) → B
 case x of f = case x return _ of f
 
+-- Curry and uncurry 
+curry : {B : A → Set ℓ₁} {C : Σ A B → Set ℓ₂} →
+        ((p : Σ A B) → C p) →
+        ((x : A) → (y : B x) → C (x , y))
+curry f x y = f (x , y)
+
+uncurry : {B : A → Set ℓ₁} {C : Σ A B → Set ℓ₂} →
+          ((x : A) → (y : B x) → C (x , y)) →
+          ((p : Σ A B) → C p)
+uncurry f (x , y) = f x y
+
 ------------------------------------------------------------------------
 -- Operations that are only defined for non-dependent functions
 
@@ -279,6 +291,13 @@ drop : ℕ → List A → List A
 drop zero    xs       = xs
 drop (suc n) []       = []
 drop (suc n) (x ∷ xs) = drop n xs
+
+revapp : List A → List A → List A
+revapp [] ys       = ys
+revapp (x ∷ xs) ys = revapp xs (x ∷ ys)
+
+reverse : List A → List A
+reverse xs = revapp xs []
 ------------------------------------------------------------------------
 -- Type classes: Enum, Eq, Ord, Show, 
 record Eq (A : Set ℓ) : Set (lsuc ℓ) where
@@ -337,6 +356,7 @@ record Ord (A : Set ℓ) : Set (lsuc ℓ) where
     _<=_ : A → A → Bool
     _<?_ : A → A → Bool 
     overlap ⦃ eq ⦄ : Eq A
+
 open Ord ⦃...⦄ public
 
 leqOrd : ⦃ _ : Eq A ⦄ → (A → A → Bool) → Ord A
@@ -500,10 +520,16 @@ record IApplicative (F : IFun I) : Setω where
   when : Bool → F i i ⊤ → F i i ⊤
   when false s = pure tt
   when true  s = s
+
 open IApplicative ⦃...⦄ public
 
 Applicative : Fun → Setω
 Applicative F = IApplicative {I = ⊤} λ _ _ → F
+
+filterA : ⦃ _ : Applicative F ⦄ → (A → F Bool) → List A → F (List A)
+filterA p []       = pure []
+filterA p (x ∷ xs) = let ys = filterA p xs in
+  ⦇ if p x then map (x ∷_) ys else ys ⦈
 
 record IMonad (M : IFun I) : Setω where
   infixl 1 _>>=_ _>>_ _>=>_ _>>_
@@ -618,24 +644,25 @@ open IMonadFail ⦃...⦄ public
 
 MonadFail : (M : Fun) → Setω
 MonadFail M = IMonadFail {I = ⊤} λ _ _ → M
+
 ------------------------------------------------------------------------
 -- Iterator idioms  
 
-record Foldable (T : Fun) : Setω where
+record Foldable (F : Fun) : Setω where
   field
-    foldr : (A → B → B) → B → T A → B 
+    foldr : (A → B → B) → B → F A → B 
 
-  foldMap : (_∙_ : C → C → C) ⦃ _ : Monoid C _∙_ ⦄ → (A → C) → T A → C
+  foldMap : (_∙_ : C → C → C) ⦃ _ : Monoid C _∙_ ⦄ → (A → C) → F A → C
   foldMap _∙_ f = foldr (_∙_ ∘ f) ε
 
-  asum : ⦃ _ : Alternative F ⦄ → T (F A) -> F A
+  asum : ⦃ _ : Alternative T ⦄ → F (T A) -> T A
   asum = foldr _<|>_ azero
 
-  and or : T Bool → Bool
+  and or : F Bool → Bool
   and = foldMap _&&_ id
   or  = foldMap _||_ id
 
-  all any : (A → Bool) → T A → Bool
+  all any : (A → Bool) → F A → Bool
   all f = foldMap _&&_ f
   any f = foldMap _||_ f
 open Foldable ⦃...⦄ public
