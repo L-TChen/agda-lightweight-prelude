@@ -384,10 +384,12 @@ instance
   show ⦃ charS ⦄ = primShowChar
   stringS : Show String
   show ⦃ stringS ⦄ = primShowString
-
-  floatS : Show Float
+  floatS  : Show Float
   show ⦃ floatS ⦄ = F.primShowFloat
-
+  natS    : Show ℕ
+  show ⦃ natS ⦄  = S.primShowNat
+  wordS   : Show Word64
+  show ⦃ wordS ⦄ = S.primShowNat ∘ W.primWord64ToNat
 ------------------------------------------------------------------------
 --
 
@@ -414,7 +416,7 @@ record ISequence {A : Set} (Seq : A → Set ℓ) : Set (lsuc ℓ) where
     addIdx   : A → A → A 
     carrier  : Set ℓ
     [_]      : carrier → Seq unitIdx
-    empty    : Seq zeroIdx
+    emptySeq : Seq zeroIdx
     _++_     : ∀ {n m} → Seq n → Seq m → Seq (addIdx n m)
     length   : ∀ {n} → Seq n → ℕ 
     fromList : List carrier → Σ A Seq
@@ -430,7 +432,7 @@ instance
   listSeq {A = A} = record
     { carrier  = A
     ; [_]      = _∷ []
-    ; empty    = []
+    ; emptySeq = []
     ; _++_     = L._++_
     ; length   = L.length
     ; fromList = λ xs → _ , xs
@@ -439,11 +441,11 @@ instance
     
   stringSeq : Sequence String
   stringSeq = record
-    { carrier = Char
-    ; [_] = primStringFromList ∘ (_∷ [])
-    ; empty = ""
-    ; _++_ = primStringAppend
-    ; length = λ xs → L.length (primStringToList xs)
+    { carrier  = Char
+    ; [_]      = primStringFromList ∘ (_∷ [])
+    ; emptySeq = ""
+    ; _++_     = primStringAppend
+    ; length   = λ xs → L.length (primStringToList xs)
     ; fromList = λ xs → (_ , primStringFromList xs)
     ; toList   = primStringToList ∘ snd
     }
@@ -587,12 +589,14 @@ record IMAlternative (F : C → IFun I) : Setω where
     _∙_ : C → C → C
     ⦃ applicative ⦄ : {c : C} → IApplicative (F c)
     ⦃ monoid ⦄      : Monoid C _∙_
-    azero : F ε i j A
+    empty : F ε i j A
     _<|>_ : ∀ {x y} → F x i j A → F y i j A → F (x ∙ y) i j A
-    
+
+  ⦇⦈ = empty
+  
   guard : Bool → F ε i i ⊤
   guard true  = pure tt
-  guard false = azero
+  guard false = empty
 open IMAlternative ⦃...⦄ public
 
 MAlternative : (C → Fun) → Setω
@@ -606,8 +610,12 @@ Alternative F = IAlternative {I = ⊤} λ _ _ → F
 
 mkAlternative : ⦃ _ : Applicative F ⦄
   → (∀ {ℓ} {A : Set ℓ} → F A) → (∀ {ℓ} {A : Set ℓ} → F A → F A → F A) → Alternative F
-mkAlternative z f = record { _∙_ = λ _ _ → tt ; azero = z ; _<|>_ = f }
+mkAlternative z f = record { _∙_ = λ _ _ → tt ; empty = z ; _<|>_ = f }
 
+instance
+  ListAlternative : Alternative List
+  ListAlternative = mkAlternative [] L._++_
+    
 record IMonadPlus (M : IFun I) : Setω where
   field
     ⦃ alternative ⦄ : IAlternative M
@@ -656,7 +664,10 @@ record Foldable (F : Fun) : Setω where
   foldMap _∙_ f = foldr (_∙_ ∘ f) ε
 
   asum : ⦃ _ : Alternative T ⦄ → F (T A) -> T A
-  asum = foldr _<|>_ azero
+  asum = foldr _<|>_ empty
+
+  asum′ : ⦃ _ : Alternative T ⦄ → T A → F (T A) → T A
+  asum′ z = foldr _<|>_ z
 
   and or : F Bool → Bool
   and = foldMap _&&_ id

@@ -29,11 +29,13 @@ instance
   ListApplicative : Applicative List
   ListApplicative = monad⇒applicative
 -}
+{-
   ListAlternative : Alternative L.List
   ListAlternative = record
-    { azero = []
+    { empty = []
     ; _<|>_ = L._++_
     }
+-}
 {-
   ListFoldable : Foldable L.List
   ListFoldable = record { foldr = L.foldr }

@@ -20,7 +20,7 @@ instance
   MaybeApplicative = monad⇒applicative
 
   MaybeAlternative : Alternative Maybe
-  MaybeAlternative = record { azero = nothing ; _<|>_ = M._<∣>_ }
+  MaybeAlternative = record { empty = nothing ; _<|>_ = M._<∣>_ }
 
   MaybeFoldable : Foldable Maybe
   foldr ⦃ MaybeFoldable ⦄ f z (just x) = f x z

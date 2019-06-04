@@ -38,17 +38,17 @@ instance
     ℕ-+-monoid = record { ε = 0 }
     
   VecAlternative : MAlternative λ n A → Vec A n
-  VecAlternative = record { azero = [] ; _<|>_ = V._++_ }
+  VecAlternative = record { empty = [] ; _<|>_ = V._++_ }
   
   VecSequence : ISequence (Vec A)
   VecSequence {A = A} = record
-    { zeroIdx = 0
-    ; unitIdx = 1
-    ; addIdx = _+_
-    ; carrier = A
-    ; [_] = V.[_]
-    ; empty = []
-    ; _++_ = V._++_
+    { zeroIdx  = 0
+    ; unitIdx  = 1
+    ; addIdx   =  _+_
+    ; carrier  = A
+    ; [_]      = V.[_]
+    ; emptySeq = []
+    ; _++_     = V._++_
     ; length   = λ {n} xs → n
     ; fromList = λ xs → L.length xs , V.fromList xs 
     ; toList   = λ { (n , xs) → V.toList xs }
