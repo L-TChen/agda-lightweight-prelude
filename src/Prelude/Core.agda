@@ -697,9 +697,9 @@ record MAlternative (F : C → Fun) : Setω where
 
   ⦇⦈ = empty
   
-  guard : Bool → F ε ⊤
-  guard true  = pure tt
-  guard false = empty
+  guard : Bool → F ε A → F ε A
+  guard true  x = x
+  guard false _ = empty
 open MAlternative ⦃...⦄ public
 {-
 MAlternative : (C → Fun) → Setω
