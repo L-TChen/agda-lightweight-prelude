@@ -37,8 +37,8 @@ open import Agda.Builtin.Word  as W    public
 
 variable
   ℓ ℓ′ ℓ₁ ℓ₂ ℓ₃ : Level
-  A B C D E : Set ℓ
-  n m l   : ℕ
+  A B C D E     : Set ℓ
+  n m l         : ℕ
 
 ------------------------------------------------------------------------
 -- Function combinators 
@@ -134,7 +134,7 @@ case x return B of f = f x
 -- inferring the non-dependency. Primed (′ = \prime) versions of the
 -- operations are therefore provided below that sometimes have better
 -- inference properties.
-
+{-
 infixr 9 _∘′_
 infixl 0 _|>′_
 infix  0 case_of_
@@ -159,7 +159,7 @@ _$!′_ = _$!_
 
 _|>′_ : A → (A → B) → B
 _|>′_ = _|>_
-
+-}
 -- Case expressions (to be used with pattern-matching lambdas, see
 -- README.Case).
 
@@ -183,7 +183,6 @@ uncurry f (x , y) = f x y
 infixr 0 _-[_]-_
 infixl 1 _on_
 infixl 1 _⟨_⟩_
-infixl 0 _∋_
 
 -- Binary application
 
@@ -202,12 +201,6 @@ f -[ _*_ ]- g = λ x y → f x y * g x y
 
 -- In Agda you cannot annotate every subexpression with a type
 -- signature. This function can be used instead.
-
-_∋_ : (A : Set ℓ) → A → A
-A ∋ x = x
-
--- Conversely it is sometimes useful to be able to extract the
--- type of a given expression.
 
 typeOf : A → Set _
 typeOf {A = A} _ = A
@@ -228,7 +221,6 @@ A × B = Σ A λ _ → B
 _,′_ : A → B → A × B
 _,′_ = _,_
 
-
 data Maybe (A : Set ℓ) : Set ℓ where
   just    : (x : A) → Maybe A
   nothing : Maybe A
@@ -240,11 +232,12 @@ data _⊎_ (A : Set ℓ₁) (B : Set ℓ₂) : Set (ℓ₁ ⊔ ℓ₂) where
   inj₂ : (y : B) → A ⊎ B
   
 ---------------------------------------------------------------------
--- Basic Bool functions
+-- Bool functions
 
 infixr 6 _&&_
 infixr 5 _||_ _xor_
 infix  0 if_then_else_
+
 _&&_ : Bool → Bool → Bool
 _&&_ false false = false
 _&&_ false true  = false
@@ -280,18 +273,17 @@ module L where
   length : List A → ℕ
   length = foldr (λ _ → suc) 0
 
-  fmap : (A → B) → List A → List B
-  fmap f = foldr (λ x → f x ∷_) []
+  map : (A → B) → List A → List B
+  map f = foldr (λ x → f x ∷_) []
 
   _++_ : List A → List A → List A
-  []       ++ ys = ys
-  (x ∷ xs) ++ ys = x ∷ xs ++ ys
-  
+  _++_ xs ys = foldr _∷_ ys xs
+
 concat : List (List A) → List A
 concat = L.foldr L._++_ []
 
 concatMap : (A → List B) → List A → List B
-concatMap f = concat ∘ L.fmap f
+concatMap f = concat ∘ L.map f
 
 take : ℕ → List A → List A
 take zero    xs       = []
@@ -323,7 +315,7 @@ infixr 5 _∷_
 
 data Vec (A : Set ℓ) : ℕ → Set ℓ where
   []  : Vec A zero
-  _∷_ : ∀ {n} (x : A) (xs : Vec A n) → Vec A (suc n)
+  _∷_ : (x : A) (xs : Vec A n) → Vec A (suc n)
 
 module V where
   map : (A → B) → Vec A n → Vec B n
@@ -333,7 +325,7 @@ module V where
   tail : Vec A (1 + n) → Vec A n
   tail (x ∷ xs) = xs
 
-  replicate : ∀ {n} → A → Vec A n
+  replicate : A → Vec A n
   replicate {n = zero}  x = []
   replicate {n = suc n} x = x ∷ replicate x
 
@@ -358,7 +350,6 @@ record Eq (A : Set ℓ) : Set (lsuc ℓ) where
   infix 8 _==_ _/=_
   field
     _==_ : A → A → Bool
-    
   _/=_ : A → A → Bool
   x /= y = not $ x == y
 open Eq ⦃...⦄ public
@@ -386,7 +377,6 @@ instance
   _==_ ⦃ MaybeEq ⦄ nothing (just y)  = false
   _==_ ⦃ MaybeEq ⦄ nothing nothing   = true
 
-  
 record Enum (A : Set ℓ) : Set (lsuc ℓ) where
   field
     toEnum    : ℕ → A
@@ -443,7 +433,8 @@ instance
   wordS   : Show Word64
   show ⦃ wordS ⦄ = S.primShowNat ∘ W.primWord64ToNat
   ListShow : ⦃ _ : Show A ⦄ → Show (List A)
-  show ⦃ ListShow ⦄ = L.foldr (λ x xs → primStringAppend (show x) (primStringAppend " ∷ " xs)) "[]"
+  show ⦃ ListShow ⦄ =
+    L.foldr (λ x xs → primStringAppend (show x) (primStringAppend " ∷ " xs)) "[]"
   
 ------------------------------------------------------------------------
 --
@@ -476,7 +467,7 @@ record ISequence {A : Set} (Seq : A → Set ℓ) : Set (lsuc ℓ) where
     [_]      : carrier → Seq unitIdx
     emptySeq : Seq zeroIdx
     _++_     : ∀ {n m} → Seq n → Seq m → Seq (addIdx n m)
-    length   : ∀ {n} → Seq n → ℕ
+    length   : ∀ {n}   → Seq n → ℕ
     fromList : List carrier → Σ A Seq
     toList   : Σ A Seq → List carrier
 open ISequence ⦃...⦄ public
@@ -540,16 +531,16 @@ open POrd ⦃...⦄ public
 
 Fun : Setω
 Fun = ∀ {ℓ} → Set ℓ → Set ℓ
-    
+{-    
 IFun : Set ℓ → Setω
 IFun I = ∀ {ℓ} → I → I → Set ℓ → Set ℓ
-
+-}
 private
   variable
     F T   : Fun
     I     : Set ℓ
-    IF IT : IFun I
-    i j k : I
+--    IF IT : IFun I
+--    i j k : I
 
 record Functor (T : Fun) : Setω where
   infixl 6 _<$>_
@@ -560,7 +551,7 @@ open Functor ⦃...⦄ public
 
 instance
   listFunc : Functor List
-  _<$>_ ⦃ listFunc ⦄ = L.fmap
+  _<$>_ ⦃ listFunc ⦄ = L.map
 
   maybeFunc : Functor Maybe
   _<$>_ ⦃ maybeFunc ⦄ f (just x) = just (f x)
@@ -584,7 +575,7 @@ open Bifunctor ⦃...⦄ public
 record SymBifunctor (T : ∀ {ℓ₁ ℓ₂} → Set ℓ₁ → Set ℓ₂ → Set (ℓ₁ ⊔ ℓ₂)) : Setω where
   field
     swap : T A B → T B A 
-    overlap ⦃ bifunc ⦄ : Bifunctor T
+    ⦃ bifunc ⦄ : Bifunctor T
 open SymBifunctor ⦃...⦄ public
 
 instance
@@ -596,74 +587,82 @@ instance
   swap ⦃ +-SymBifunc ⦄ (inj₁ x) = inj₂ x
   swap ⦃ +-SymBifunc ⦄ (inj₂ y) = inj₁ y
 
-record IApplicative (F : IFun I) : Setω where
+  ×-Bifunc : Bifunctor _×_
+  bimap ⦃ ×-Bifunc ⦄ f g (x , y) = f x , g y
+
+  ×-SymBifunc : SymBifunctor _×_
+  swap ⦃ ×-SymBifunc ⦄ (x , y) = y , x
+
+record Applicative (F : Fun) : Setω where
   infixl 4 _<*>_
   field
-    pure  : A → F i i A
-    _<*>_ : F i j (A → B) → F j k A → F i k B
-    overlap ⦃ functor ⦄ : Functor (F i j)
+    pure  : A → F A
+    _<*>_ : F (A → B) → F A → F B
+    ⦃ functor ⦄ : Functor F
     
-  zipWith : (A → B → C) → F i j A → F j k B → F i k C
+  zipWith : (A → B → C) → F A → F B → F C
   zipWith f x y = ⦇ f x y ⦈
 
-  zip : F i j A → F j k B → F i k (Σ A λ _ → B)
+  zip : F A → F B → F (Σ A λ _ → B)
   zip = zipWith _,_
 
-  when : Bool → F i i ⊤ → F i i ⊤
+  when : Bool → F ⊤ → F ⊤
   when false s = pure tt
   when true  s = s
-open IApplicative ⦃...⦄ public
-
+open Applicative ⦃...⦄ public
+{-
 Applicative : Fun → Setω
 Applicative F = IApplicative {I = ⊤} λ _ _ → F
-
+-}
 filterA : ⦃ _ : Applicative F ⦄ → (A → F Bool) → List A → F (List A)
 filterA p []       = pure []
 filterA p (x ∷ xs) = let ys = filterA p xs in
   ⦇ if p x then map (x ∷_) ys else ys ⦈
 
-record IMonad (M : IFun I) : Setω where
+record Monad (M : Fun) : Setω where
   infixl 1 _>>=_ _>>_ _>=>_ _>>_
   infixr 1 _=<<_ _<=<_
   field
-    return : A → M i i A
-    _>>=_  : M i j A → (A → M j k B) → M i k B
-
-  _=<<_ : (A → M j k B) → M i j A → M i k B
+    return : A → M A
+    _>>=_  : M A → (A → M B) → M B
+  
+  _=<<_ : (A → M B) → M A → M B
   f =<< c = c >>= f
   
-  _>>_ : M i j A → M j k B → M i k B
+  _>>_ : M A → M B → M B
   ma >> mb = ma >>= λ _ → mb
 
-  _<<_ : M j k B → M i j A → M i k B
+  _<<_ : M B → M A → M B
   mb << ma = ma >> mb
   
-  _>=>_ : (A → M i j B) → (B → M j k C) → (A → M i k C)
+  _>=>_ : (A → M B) → (B → M C) → (A → M C)
   f >=> g = _=<<_ g ∘ f
 
-  _<=<_ : (B → M j k C) → (A → M i j B) → (A → M i k C)
+  _<=<_ : (B → M C) → (A → M B) → (A → M C)
   g <=< f = f >=> g
 
   infixr 0 caseM_of_
   caseM_of_ = _>>=_
   
-  ap : M i j (A → B) → M j k A → M _ _ B
+  ap : M (A → B) → M A → M B
   ap mf ma = mf >>= λ f → ma >>= return ∘ f
 
-  join : M i j (M j k A) → M i k A
+  join : M (M A) → M A
   join ma = ma >>= id
-open IMonad ⦃...⦄ public
+open Monad ⦃...⦄ public
 
-monad⇒applicative : {M : IFun I} ⦃ _ : IMonad M ⦄ → IApplicative M
-monad⇒applicative = record
-  { pure    = return
-  ; _<*>_   = ap
-  ; functor = record { _<$>_ = λ f ma → ma >>= return ∘ f }
-  }
+bind : (M : Fun) ⦃ _ : Monad M ⦄ → M A → (A → M B) → M B
+bind M = _>>=_ {M = M}
 
+monad⇒applicative : {M : Fun} ⦃ _ : Monad M ⦄ → Applicative M
+pure    ⦃ monad⇒applicative ⦄ = return
+_<*>_   ⦃ monad⇒applicative ⦄ = ap
+functor ⦃ monad⇒applicative ⦄ = record { _<$>_ = λ f ma → ma >>= return ∘ f }
+
+{-
 Monad : Fun → Setω
 Monad M = IMonad {I = ⊤} λ _ _ → M
-
+-}
 instance
   MonadList : Monad List
   return ⦃ MonadList ⦄      = _∷ []
@@ -687,30 +686,31 @@ instance
   VecApplicative : Applicative (λ A → Vec A n)
   VecApplicative = monad⇒applicative
 
-record IMAlternative (F : C → IFun I) : Setω where
+record MAlternative (F : C → Fun) : Setω where
   infixr 3 _<|>_
   field
     _∙_ : C → C → C
-    ⦃ applicative ⦄ : {c : C} → IApplicative (F c)
+    ⦃ applicative ⦄ : {c : C} → Applicative (F c)
     ⦃ monoid ⦄      : Monoid C _∙_
-    empty : F ε i j A
-    _<|>_ : ∀ {x y} → F x i j A → F y i j A → F (x ∙ y) i j A
+    empty : F ε A
+    _<|>_ : ∀ {x y} → F x A → F y A → F (x ∙ y) A
 
   ⦇⦈ = empty
   
-  guard : Bool → F ε i i ⊤
+  guard : Bool → F ε ⊤
   guard true  = pure tt
   guard false = empty
-open IMAlternative ⦃...⦄ public
-
+open MAlternative ⦃...⦄ public
+{-
 MAlternative : (C → Fun) → Setω
 MAlternative F = IMAlternative {I = ⊤} λ m _ _ → F m
-
+-}
+{-
 IAlternative : IFun I → Setω
 IAlternative F = IMAlternative {C = ⊤} λ _ → F
-
+-}
 Alternative : Fun → Setω
-Alternative F = IAlternative {I = ⊤} λ _ _ → F
+Alternative F = MAlternative {C = ⊤} λ _ → F
 
 mkAlternative : ⦃ _ : Applicative F ⦄
   → (∀ {ℓ} {A : Set ℓ} → F A) → (∀ {ℓ} {A : Set ℓ} → F A → F A → F A) → Alternative F
@@ -728,34 +728,34 @@ instance
   VecAlternative : MAlternative λ n A → Vec A n
   VecAlternative = record { _∙_ = _+_ ; empty = [] ; _<|>_ = V._++_ }
 
-record IMonadPlus (M : IFun I) : Setω where
+record MonadPlus (M : Fun) : Setω where
   field
-    ⦃ alternative ⦄ : IAlternative M
-    ⦃ monad       ⦄ : IMonad M
-open IMonadPlus ⦃...⦄ public
-
+    ⦃ alternative ⦄ : Alternative M
+    ⦃ monad       ⦄ : Monad M
+open MonadPlus ⦃...⦄ public
+{-
 MonadPlus : Fun → Setω
 MonadPlus M = IMonadPlus {I = ⊤} λ _ _ → M
-
-record IMonadError (E : Set) (M : IFun I) : Setω where
+-}
+record MonadError (E : Set) (M : Fun) : Setω where
   infixl 6 try_catch_
   infix  6 try_finally_
   infix  7 _finally_
   field
-    throw : E → M i j A
-    try_catch_ : M i j A → (E → M j k A) → M i k A
-    ⦃ monad ⦄ : IMonad M
+    throw      : E → M A
+    try_catch_ : M A → (E → M A) → M A
+    ⦃ monad ⦄  : Monad M
     
-  _finally_ : M i j A → M j k A → M i k A
+  _finally_ : M A → M A → M A
   ma finally mb = try ma catch (λ _ → mb)
 
-  try_finally_ : M i j A → M j k A → M i k A
+  try_finally_ : M A → M A → M A
   try ma finally mb = ma finally mb
-open IMonadError ⦃...⦄ public
-
+open MonadError ⦃...⦄ public
+{-
 MonadError : (E : Set) → (M : Fun) → Setω
 MonadError E M = IMonadError {I = ⊤} E λ _ _ → M
-
+-}
 instance
   E+Monad : {E : Set} → Monad (E ⊎_)
   return ⦃ E+Monad ⦄ = inj₂
@@ -769,15 +769,15 @@ instance
     (inj₁ e) f → f e
     (inj₂ a) _ → inj₂ a
     
-record IMonadFail (M : IFun I) : Setω where
+record MonadFail (M : Fun) : Setω where
   field
-    ⦃ monad ⦄ : IMonad M
-    fail      : {A : Set ℓ} → String → M i j A 
-open IMonadFail ⦃...⦄ public
-
+    ⦃ monad ⦄ : Monad M
+    fail      : {A : Set ℓ} → String → M A 
+open MonadFail ⦃...⦄ public
+{-
 MonadFail : (M : Fun) → Setω
 MonadFail M = IMonadFail {I = ⊤} λ _ _ → M
-
+-}
 ------------------------------------------------------------------------
 -- Iterator idioms  
 
@@ -794,13 +794,13 @@ record Foldable (F : Fun) : Setω where
   asum′ : ⦃ _ : Alternative T ⦄ → T A → F (T A) → T A
   asum′ z = foldr _<|>_ z
 
-  and or : F Bool → Bool
-  and = foldMap _&&_ id
-  or  = foldMap _||_ id
-
   all any : (A → Bool) → F A → Bool
   all f = foldMap _&&_ f
   any f = foldMap _||_ f
+
+  and or : F Bool → Bool
+  and = all id
+  or  = any id
 open Foldable ⦃...⦄ public
 
 instance
@@ -825,7 +825,7 @@ open Traversable ⦃...⦄ public
 
 instance
   ListTraversable : Traversable List
-  traverse ⦃ ListTraversable ⦄ f = L.foldr (λ x ys → ⦇ f x ∷ ys ⦈) (pure [])
+  traverse ⦃ ListTraversable ⦄ f = foldr (λ x ys → ⦇ f x ∷ ys ⦈) ⦇ [] ⦈
 
   MaybeTraversable : Traversable Maybe
   traverse ⦃ MaybeTraversable ⦄ f (just x) = just <$> f x
