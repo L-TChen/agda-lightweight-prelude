@@ -1,3 +1,0 @@
-name: agda-stdlib-prelude
-include: src
-depend: standard-library
