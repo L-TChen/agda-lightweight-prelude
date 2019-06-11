@@ -432,6 +432,9 @@ instance
   show ⦃ natS ⦄  = S.primShowNat
   wordS   : Show Word64
   show ⦃ wordS ⦄ = S.primShowNat ∘ W.primWord64ToNat
+  boolS : Show Bool
+  show ⦃ boolS ⦄ false = "false"
+  show ⦃ boolS ⦄ true  = "true"
   ListShow : ⦃ _ : Show A ⦄ → Show (List A)
   show ⦃ ListShow ⦄ =
     L.foldr (λ x xs → primStringAppend (show x) (primStringAppend " ∷ " xs)) "[]"
@@ -532,8 +535,8 @@ open POrd ⦃...⦄ public
 Fun : Setω
 Fun = ∀ {ℓ} → Set ℓ → Set ℓ
 {-    
-IFun : Set ℓ → Setω
-IFun I = ∀ {ℓ} → I → I → Set ℓ → Set ℓ
+IxFun : Set ℓ → Setω
+IxFun I = ∀ {ℓ} → I → I → Set ℓ → Set ℓ
 -}
 private
   variable
@@ -609,15 +612,32 @@ record Applicative (F : Fun) : Setω where
   when : Bool → F ⊤ → F ⊤
   when false s = pure tt
   when true  s = s
+
+
 open Applicative ⦃...⦄ public
+
 {-
 Applicative : Fun → Setω
-Applicative F = IApplicative {I = ⊤} λ _ _ → F
+Applicative F = IxApplicative {I = ⊤} λ _ _ → F
 -}
 filterA : ⦃ _ : Applicative F ⦄ → (A → F Bool) → List A → F (List A)
 filterA p []       = pure []
 filterA p (x ∷ xs) = let ys = filterA p xs in
   ⦇ if p x then map (x ∷_) ys else ys ⦈
+
+record MAlternative (F : C → Fun) : Setω where
+  infixr 3 _<|>_
+  field
+    _∙_ : C → C → C
+    ⦃ applicative ⦄ : {c : C} → Applicative (F c)
+    ⦃ monoid ⦄      : Monoid C _∙_
+    empty : F ε A
+    _<|>_ : ∀ {x y} → F x A → F y A → F (x ∙ y) A
+  
+  guard : Bool → F ε A → F ε A
+  guard true  x = x
+  guard false _ = empty
+open MAlternative ⦃...⦄ public
 
 record Monad (M : Fun) : Setω where
   infixl 1 _>>=_ _>>_ _>=>_ _>>_
@@ -645,19 +665,25 @@ record Monad (M : Fun) : Setω where
   caseM_of_ = _>>=_
   
   ap : M (A → B) → M A → M B
-  ap mf ma = mf >>= λ f → ma >>= return ∘ f
+  ap mf ma = mf >>= λ f → ma >>= λ a → return (f a)
 
   join : M (M A) → M A
   join ma = ma >>= id
+
+  -- short-circut version
+  ifM_then_else_ : M Bool → M A → M A → M A
+  ifM mb then mx else my = caseM mb of λ where
+    true  → mx
+    false → my
+    
+  monad⇒applicative : Applicative M
+  pure    ⦃ monad⇒applicative ⦄ = return
+  _<*>_   ⦃ monad⇒applicative ⦄ = ap
+  functor ⦃ monad⇒applicative ⦄ = record { _<$>_ = λ f ma → ma >>= return ∘ f }
 open Monad ⦃...⦄ public
 
 bind : (M : Fun) ⦃ _ : Monad M ⦄ → M A → (A → M B) → M B
 bind M = _>>=_ {M = M}
-
-monad⇒applicative : {M : Fun} ⦃ _ : Monad M ⦄ → Applicative M
-pure    ⦃ monad⇒applicative ⦄ = return
-_<*>_   ⦃ monad⇒applicative ⦄ = ap
-functor ⦃ monad⇒applicative ⦄ = record { _<$>_ = λ f ma → ma >>= return ∘ f }
 
 {-
 Monad : Fun → Setω
@@ -669,7 +695,7 @@ instance
   _>>=_  ⦃ MonadList ⦄ xs f = concatMap f xs
 
   ApplicativeList : Applicative List
-  ApplicativeList = monad⇒applicative
+  ApplicativeList = monad⇒applicative {List}
 
   MaybeMonad : Monad Maybe
   return ⦃ MaybeMonad ⦄ = just
@@ -686,21 +712,7 @@ instance
   VecApplicative : Applicative (λ A → Vec A n)
   VecApplicative = monad⇒applicative
 
-record MAlternative (F : C → Fun) : Setω where
-  infixr 3 _<|>_
-  field
-    _∙_ : C → C → C
-    ⦃ applicative ⦄ : {c : C} → Applicative (F c)
-    ⦃ monoid ⦄      : Monoid C _∙_
-    empty : F ε A
-    _<|>_ : ∀ {x y} → F x A → F y A → F (x ∙ y) A
 
-  ⦇⦈ = empty
-  
-  guard : Bool → F ε A → F ε A
-  guard true  x = x
-  guard false _ = empty
-open MAlternative ⦃...⦄ public
 {-
 MAlternative : (C → Fun) → Setω
 MAlternative F = IMAlternative {I = ⊤} λ m _ _ → F m
@@ -709,6 +721,7 @@ MAlternative F = IMAlternative {I = ⊤} λ m _ _ → F m
 IAlternative : IFun I → Setω
 IAlternative F = IMAlternative {C = ⊤} λ _ → F
 -}
+
 Alternative : Fun → Setω
 Alternative F = MAlternative {C = ⊤} λ _ → F
 
@@ -769,10 +782,10 @@ instance
     (inj₁ e) f → f e
     (inj₂ a) _ → inj₂ a
     
-record MonadFail (M : Fun) : Setω where
+record MonadFail (S : Set ℓ) (M : Fun) : Setω where
   field
     ⦃ monad ⦄ : Monad M
-    fail      : {A : Set ℓ} → String → M A 
+    fail      : {A : Set ℓ} → S → M A 
 open MonadFail ⦃...⦄ public
 {-
 MonadFail : (M : Fun) → Setω
