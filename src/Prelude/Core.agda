@@ -204,6 +204,7 @@ f -[ _*_ ]- g = λ x y → f x y * g x y
 typeOf : A → Set _
 typeOf {A = A} _ = A
 -}
+
 ------------------------------------------------------------------------
 -- Common types
 
@@ -231,6 +232,41 @@ data _⊎_ (A : Set ℓ₁) (B : Set ℓ₂) : Set (ℓ₁ ⊔ ℓ₂) where
   inj₁ : (x : A) → A ⊎ B
   inj₂ : (y : B) → A ⊎ B
 
+infix 4 _≢_
+_≢_ : A → A → Set _
+x ≢ y = x ≡ y → ⊥
+
+cong : ∀ (f : A → B) {x y} → x ≡ y → f x ≡ f y
+cong f refl = refl
+
+sym : {x y : A} → x ≡ y → y ≡ x
+sym refl = refl
+
+trans : {x y z : A} → x ≡ y → y ≡ z → x ≡ z
+trans refl eq = eq
+
+subst : {x y : A} → (P : A → Set ℓ) → x ≡ y → P x → P y
+subst P refl p = p
+
+module ≡-Reasoning {A : Set ℓ} where
+  infix  3 _∎
+  infixr 2 _≡⟨⟩_ _≡⟨_⟩_ _≡˘⟨_⟩_
+  infix  1 begin_
+
+  begin_ : {x y : A} → x ≡ y → x ≡ y
+  begin_ x≡y = x≡y
+
+  _≡⟨⟩_ : (x {y} : A) → x ≡ y → x ≡ y
+  _ ≡⟨⟩ x≡y = x≡y
+
+  _≡⟨_⟩_ : (x {y z} : A) → x ≡ y → y ≡ z → x ≡ z
+  _ ≡⟨ x≡y ⟩ y≡z = trans x≡y y≡z
+
+  _≡˘⟨_⟩_ : (x {y z} : A) → y ≡ x → y ≡ z → x ≡ z
+  _ ≡˘⟨ y≡x ⟩ y≡z = trans (sym y≡x) y≡z
+
+  _∎ : ∀ (x : A) → x ≡ x
+  _∎ _ = refl
 ---------------------------------------------------------------------
 -- Bool functions
 
@@ -641,8 +677,7 @@ open IxApplicative ⦃...⦄ public
 {-# DISPLAY IxApplicative._<*>_ = _<*>_ #-}
 {-# DISPLAY IxApplicative._<*_  = _<*_ #-}
 {-# DISPLAY IxApplicative._*>_  = _*>_ #-}
---{-# DISPLAY Applicative.when  = when #-}
-
+{-# DISPLAY IxApplicative.when  = when #-}
 
 Applicative : Fun → Setω
 Applicative F = IxApplicative {I = ⊤} λ _ _ → F
@@ -677,6 +712,13 @@ MAlternative F = IxMAlternative {I = ⊤} λ m _ _ → F m
 
 IxAlternative : IxFun I → Setω
 IxAlternative F = IxMAlternative {C = ⊤} λ _ → F
+
+Alternative : Fun → Setω
+Alternative F = MAlternative {C = ⊤} λ _ → F
+
+mkAlternative : ⦃ _ : Applicative F ⦄
+  → (∀ {ℓ} {A : Set ℓ} → F A) → (∀ {ℓ} {A : Set ℓ} → F A → F A → F A) → Alternative F
+mkAlternative z f = record { _∙_ = λ _ _ → tt ; empty = z ; _<|>_ = f }
 
 record IxMonad (M : IxFun I) : Setω where
   infixl 1 _>>=_ _>>_ _>=>_ _>>_
@@ -757,14 +799,6 @@ instance
   VecApplicative : Applicative (λ A → Vec A n)
   VecApplicative = Monad⇒Applicative
 
-Alternative : Fun → Setω
-Alternative F = MAlternative {C = ⊤} λ _ → F
-
-mkAlternative : ⦃ _ : Applicative F ⦄
-  → (∀ {ℓ} {A : Set ℓ} → F A) → (∀ {ℓ} {A : Set ℓ} → F A → F A → F A) → Alternative F
-mkAlternative z f = record { _∙_ = λ _ _ → tt ; empty = z ; _<|>_ = f }
-
-instance
   ListAlternative : Alternative List
   ListAlternative = mkAlternative [] L._++_
 
@@ -775,6 +809,13 @@ instance
 
   VecAlternative : MAlternative λ n A → Vec A n
   VecAlternative = record { _∙_ = _+_ ; empty = [] ; _<|>_ = V._++_ }
+
+DContT : (I → Set) → (M : Fun) → IxFun I
+DContT K M r₂ r₁ A = (A → M (K r₁)) → M (K r₂)
+
+DContTIMonad : ⦃ _ : IxMonad IxM ⦄ {K : I → Set} → IxMonad (DContT K M)
+return ⦃ DContTIMonad ⦄ a k    = k a
+_>>=_  ⦃ DContTIMonad ⦄ c f k  = c (flip f k)
 
 record IxMonadPlus (M : IxFun I) : Setω where
   field
