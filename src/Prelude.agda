@@ -205,6 +205,9 @@ typeOf : A → Set _
 typeOf {A = A} _ = A
 -}
 
+_∋_ : (A : Set ℓ) → A → A
+A ∋ x = x
+
 ------------------------------------------------------------------------
 -- Common types
 
@@ -328,6 +331,12 @@ module L where
   _++_ : List A → List A → List A
   _++_ xs ys = foldr _∷_ ys xs
 
+filter : (A → Bool) → List A → List A
+filter p [] = []
+filter p (x ∷ xs) =
+  let xs′ = filter p xs
+  in if p x then x ∷ xs′ else xs′
+  
 concat : List (List A) → List A
 concat = L.foldr L._++_ []
 
@@ -599,6 +608,8 @@ record Functor (T : Fun) : Setω where
   field
     _<$>_ : (A → B) → T A → T B
   map = _<$>_
+  _<$_ : B → T A → T B
+  x <$ m = map (const x)m
 open Functor ⦃...⦄ public
 
 {-# DISPLAY Functor._<$>_ = _<$>_ #-}
@@ -810,12 +821,6 @@ instance
   VecAlternative : MAlternative λ n A → Vec A n
   VecAlternative = record { _∙_ = _+_ ; empty = [] ; _<|>_ = V._++_ }
 
-DContT : (I → Set) → (M : Fun) → IxFun I
-DContT K M r₂ r₁ A = (A → M (K r₁)) → M (K r₂)
-
-DContTIMonad : ⦃ _ : IxMonad IxM ⦄ {K : I → Set} → IxMonad (DContT K M)
-return ⦃ DContTIMonad ⦄ a k    = k a
-_>>=_  ⦃ DContTIMonad ⦄ c f k  = c (flip f k)
 
 record IxMonadPlus (M : IxFun I) : Setω where
   field
@@ -853,6 +858,22 @@ open IxMonadFail ⦃...⦄ public
 
 MonadFail : Set ℓ → (M : Fun) → Setω
 MonadFail S M = IxMonadFail {I = ⊤} S λ _ _ → M
+
+record Comonad (T : Fun) : Setω where
+  field
+    extract : T A → A
+    _<<=_   : (T A → B) → T A → T B
+
+  duplicate : T A → T (T A)
+  duplicate = id <<=_ 
+
+  app : T (A → B) → T A → T B
+  app tf = (extract tf ∘ extract) <<=_
+
+  Comonad⇒Functor : Functor T
+  _<$>_ ⦃ Comonad⇒Functor ⦄ f = (f ∘ extract) <<=_
+open Comonad ⦃...⦄ public
+
 ------------------------------------------------------------------------
 -- Iterator idioms
 
