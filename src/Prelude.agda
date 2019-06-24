@@ -235,6 +235,11 @@ data _⊎_ (A : Set ℓ₁) (B : Set ℓ₂) : Set (ℓ₁ ⊔ ℓ₂) where
   inj₁ : (x : A) → A ⊎ B
   inj₂ : (y : B) → A ⊎ B
 
+record Const (C : Set) (A : Set ℓ) : Set ℓ where
+  constructor ↑
+  field
+    ↓ : C
+
 infix 4 _≢_
 _≢_ : A → A → Set _
 x ≢ y = x ≡ y → ⊥
@@ -622,9 +627,12 @@ instance
   _<$>_ ⦃ maybeFunc ⦄ f (just x) = just (f x)
   _<$>_ ⦃ maybeFunc ⦄ f nothing  = nothing
 
-  VecFunctor : Functor (λ A → Vec A n)
-  _<$>_ ⦃ VecFunctor ⦄ f []       = []
-  _<$>_ ⦃ VecFunctor ⦄ f (x ∷ xs) = f x ∷ f <$> xs
+  VecFunc : Functor (λ A → Vec A n)
+  _<$>_ ⦃ VecFunc ⦄ f []       = []
+  _<$>_ ⦃ VecFunc ⦄ f (x ∷ xs) = f x ∷ f <$> xs
+
+  constFunc : Functor (Const C)
+  _<$>_ ⦃ constFunc ⦄ f (↑ c) = ↑ c
 
 record Bifunctor (T : ∀ {ℓ₁ ℓ₂} → Set ℓ₁ → Set ℓ₂ → Set (ℓ₁ ⊔ ℓ₂)) : Setω where
   field
@@ -700,6 +708,12 @@ filterA {F = F} p (x ∷ xs) = let ys = filterA p xs in
   where
     instance _ = Applicative⇒Functor {F = λ _ _ → F}
 
+instance
+  ApplicativeConst : {M : Set} {_∙_ : M → M → M} ⦃ _ : Monoid M _∙_ ⦄
+    → Applicative (Const M)
+  pure  ⦃ ApplicativeConst ⦄ _ = ↑ ε
+  _<*>_ ⦃ ApplicativeConst {_∙_ = _∙_} ⦄ (↑ a) (↑ b) = ↑ (a ∙ b)
+
 record IxMAlternative (F : C → IxFun I) : Setω where
   infixr 3 _<|>_
   field
@@ -729,8 +743,13 @@ Alternative F = MAlternative {C = ⊤} λ _ → F
 
 mkAlternative : ⦃ _ : Applicative F ⦄
   → (∀ {ℓ} {A : Set ℓ} → F A) → (∀ {ℓ} {A : Set ℓ} → F A → F A → F A) → Alternative F
-mkAlternative z f = record { _∙_ = λ _ _ → tt ; empty = z ; _<|>_ = f }
+_∙_ ⦃ mkAlternative z f ⦄ _ _ = tt
+empty ⦃ mkAlternative z f ⦄ = z
+_<|>_ ⦃ mkAlternative z f ⦄ = f
 
+AlternativeMonoid : (F : Fun) → {A : Set ℓ} ⦃ _ : Alternative F ⦄ → Monoid (F A) _<|>_
+ε ⦃ AlternativeMonoid F ⦄ = empty
+  
 record IxMonad (M : IxFun I) : Setω where
   infixl 1 _>>=_ _>>_ _>=>_ _>>_
   infixr 1 _=<<_ _<=<_
@@ -821,7 +840,6 @@ instance
   VecAlternative : MAlternative λ n A → Vec A n
   VecAlternative = record { _∙_ = _+_ ; empty = [] ; _<|>_ = V._++_ }
 
-
 record IxMonadPlus (M : IxFun I) : Setω where
   field
     ⦃ alternative ⦄ : IxAlternative M
@@ -880,23 +898,12 @@ open Comonad ⦃...⦄ public
 record Foldable (F : Fun) : Setω where
   field
     foldr : (A → B → B) → B → F A → B
-
-  foldMap : (_∙_ : C → C → C) ⦃ _ : Monoid C _∙_ ⦄ → (A → C) → F A → C
-  foldMap _∙_ f = foldr (_∙_ ∘ f) ε
-
+    
   asum : ⦃ _ : Alternative T ⦄ → F (T A) -> T A
   asum = foldr _<|>_ empty
 
-  asum′ : ⦃ _ : Alternative T ⦄ → T A → F (T A) → T A
-  asum′ z = foldr _<|>_ z
-
-  all any : (A → Bool) → F A → Bool
-  all f = foldMap _&&_ f
-  any f = foldMap _||_ f
-
-  and or : F Bool → Bool
-  and = all id
-  or  = any id
+  asumWith : ⦃ _ : Alternative T ⦄ → T A → F (T A) → T A
+  asumWith z = foldr _<|>_ z
 open Foldable ⦃...⦄ public
 
 instance
@@ -912,17 +919,29 @@ record Traversable (T : Fun) : Setω where
     traverse : ⦃ _ : Applicative F ⦄ → (A → F B) → T A → F (T B)
     ⦃ functor  ⦄ : Functor T
 
-  sequence : ⦃ _ : Applicative F ⦄ → T $ F A → F $ T A
+  sequence : ⦃ _ : Applicative F ⦄ → T (F A) → F (T A)
   sequence = traverse id
 
   for : ⦃ _ : Applicative F ⦄ → T A → (A → F B) → F $ T B
   for = flip traverse
+
+  foldMap : {M : Set} (_∙_ : M → M → M) ⦃ _ : Monoid M _∙_ ⦄
+    → (A → M) → T A → M
+  foldMap {M = M} _∙_ f = Const.↓ ∘ traverse {B = M} (↑ ∘ f)
+
+  all any : (A → Bool) → T A → Bool
+  all f = foldMap _&&_ f
+  any f = foldMap _||_ f
+  
+  and or : T Bool → Bool
+  and = all id
+  or  = any id
 open Traversable ⦃...⦄ public
 
 instance
   MaybeTraversable : Traversable Maybe
-  traverse ⦃ MaybeTraversable ⦄ f (just x) = pure just <*> f x
-  traverse ⦃ MaybeTraversable ⦄ f nothing  = pure nothing
+  traverse ⦃ MaybeTraversable ⦄ f (just x) = ⦇ just (f x) ⦈
+  traverse ⦃ MaybeTraversable ⦄ f nothing  = ⦇ nothing ⦈
 
   ListTraversable : Traversable List
   traverse ⦃ ListTraversable ⦄ f = foldr (λ x ys → ⦇ f x ∷ ys ⦈) ⦇ [] ⦈
